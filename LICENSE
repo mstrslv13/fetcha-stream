@@ -1,0 +1,43 @@
+GNU GENERAL PUBLIC LICENSE
+Version 3, 29 June 2007
+
+Copyright (C) 2024 fetcha.stream
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+================================================================================
+BUNDLED COMPONENTS AND THEIR LICENSES
+================================================================================
+
+This software includes the following third-party components:
+
+1. FFmpeg (https://ffmpeg.org/)
+   Licensed under GPL v2+ due to inclusion of GPL-licensed codecs
+   - Includes libx264 (GPL v2+)
+   - Includes libx265 (GPL v2+)
+   Source code: https://github.com/FFmpeg/FFmpeg
+   
+2. yt-dlp (https://github.com/yt-dlp/yt-dlp)
+   Licensed under The Unlicense
+   Source code: https://github.com/yt-dlp/yt-dlp
+
+IMPORTANT LICENSING NOTICE:
+This application bundles FFmpeg binaries that were compiled with GPL-licensed 
+components (libx264, libx265). As a result, the entire distribution of this 
+application must comply with GPL v3 terms. The GPL requires that the complete 
+source code be made available to all users.
+
+FFmpeg Attribution:
+This software uses code of FFmpeg licensed under the GPLv2+ and its source 
+can be downloaded from https://github.com/FFmpeg/FFmpeg

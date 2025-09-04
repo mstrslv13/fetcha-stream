@@ -1,0 +1,109 @@
+import SwiftUI
+
+struct DownloadQueueView: View {
+    @ObservedObject var queueManager: DownloadQueueManager
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 15) {
+            HStack {
+                Text("Downloads")
+                    .font(.headline)
+                
+                Spacer()
+                
+                if !queueManager.activeTasks.isEmpty {
+                    Text("\(queueManager.activeTasks.count) active")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            
+            if queueManager.allTasks.isEmpty {
+                VStack(spacing: 10) {
+                    Image(systemName: "arrow.down.circle")
+                        .font(.system(size: 40))
+                        .foregroundColor(.secondary)
+                    Text("No downloads yet")
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity, minHeight: 100)
+                .padding()
+            } else {
+                ScrollView {
+                    VStack(spacing: 10) {
+                        ForEach(queueManager.allTasks) { task in
+                            DownloadProgressView(task: task)
+                        }
+                    }
+                }
+                .frame(maxHeight: 300)
+            }
+            
+            if !queueManager.completedTasks.isEmpty {
+                HStack {
+                    Text("\(queueManager.completedTasks.count) completed")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    Spacer()
+                    
+                    Button("Clear Completed") {
+                        queueManager.clearCompleted()
+                    }
+                    .buttonStyle(.link)
+                    .font(.caption)
+                }
+                .padding(.top, 5)
+            }
+        }
+        .padding()
+        .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
+        .cornerRadius(10)
+    }
+}
+
+class DownloadQueueManager: ObservableObject {
+    @Published var allTasks: [DownloadTask] = []
+    
+    var activeTasks: [DownloadTask] {
+        allTasks.filter { $0.state.isActive }
+    }
+    
+    var completedTasks: [DownloadTask] {
+        allTasks.filter { $0.state == .completed }
+    }
+    
+    var pendingTasks: [DownloadTask] {
+        allTasks.filter { $0.state == .pending }
+    }
+    
+    func addTask(_ task: DownloadTask) {
+        allTasks.append(task)
+        processNextTask()
+    }
+    
+    func clearCompleted() {
+        allTasks.removeAll { $0.state == .completed }
+    }
+    
+    private func processNextTask() {
+        guard activeTasks.isEmpty,
+              let nextTask = pendingTasks.first else { return }
+        
+        Task {
+            do {
+                let service = YTDLPService()
+                try await service.downloadVideo(task: nextTask)
+                
+                await MainActor.run {
+                    self.processNextTask()
+                }
+            } catch {
+                await MainActor.run {
+                    nextTask.state = .failed(error.localizedDescription)
+                    self.processNextTask()
+                }
+            }
+        }
+    }
+}
