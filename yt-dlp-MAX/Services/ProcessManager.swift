@@ -2,11 +2,11 @@ import Foundation
 import AppKit
 
 /// Manages all spawned processes to prevent runaway processes
-@MainActor
 class ProcessManager: ObservableObject {
     static let shared = ProcessManager()
     
     private var activeProcesses: Set<Process> = []
+    // Use concurrent queue with barriers for proper thread safety
     private let processQueue = DispatchQueue(label: "com.ytdlpmax.processmanager", attributes: .concurrent)
     
     private init() {
@@ -19,17 +19,17 @@ class ProcessManager: ObservableObject {
         )
     }
     
-    /// Register a process for tracking
+    /// Register a process for tracking (thread-safe with barrier)
     func register(_ process: Process) {
-        Task { @MainActor in
-            self.activeProcesses.insert(process)
+        processQueue.async(flags: .barrier) { [weak self] in
+            self?.activeProcesses.insert(process)
         }
     }
     
-    /// Unregister a process (when it completes or is terminated)
+    /// Unregister a process (when it completes or is terminated) (thread-safe with barrier)
     func unregister(_ process: Process) {
-        Task { @MainActor in
-            self.activeProcesses.remove(process)
+        processQueue.async(flags: .barrier) { [weak self] in
+            self?.activeProcesses.remove(process)
         }
     }
     
@@ -65,26 +65,29 @@ class ProcessManager: ObservableObject {
                 }
             }
             
-            Task { @MainActor in
-                self.unregister(process)
-            }
+            self.unregister(process)
         }
     }
     
-    /// Terminate all active processes
+    /// Terminate all active processes (thread-safe)
     func terminateAll() {
+        var processesToTerminate: [Process] = []
         processQueue.sync {
-            for process in activeProcesses {
-                terminate(process, timeout: 2.0)
-            }
+            processesToTerminate = Array(activeProcesses)
+        }
+        
+        for process in processesToTerminate {
+            terminate(process, timeout: 2.0)
         }
     }
     
-    /// Get count of active processes
+    /// Get count of active processes (thread-safe)
     var activeCount: Int {
+        var count = 0
         processQueue.sync {
-            activeProcesses.count
+            count = activeProcesses.count
         }
+        return count
     }
     
     @objc private func appWillTerminate() {
@@ -93,9 +96,7 @@ class ProcessManager: ObservableObject {
     }
     
     deinit {
-        Task { @MainActor in
-            terminateAll()
-        }
+        terminateAll()
     }
 }
 

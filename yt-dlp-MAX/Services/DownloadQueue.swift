@@ -40,6 +40,7 @@ class DownloadQueue: ObservableObject {
     private let ytdlpService = YTDLPService()
     private let preferences = AppPreferences.shared
     private var cancellables = Set<AnyCancellable>()
+    private var itemCancellables: [UUID: AnyCancellable] = [:] // Track item-specific subscriptions
     private var activeDownloads: Set<UUID> = []
     
     init() {
@@ -100,12 +101,14 @@ class DownloadQueue: ObservableObject {
             downloadLocation: itemDownloadLocation
         )
         
-        // Subscribe to item changes to trigger queue updates
-        item.objectWillChange
-            .sink { [weak self] _ in
-                self?.objectWillChange.send()
+        // Subscribe to item changes to trigger queue updates with weak references
+        let cancellable = item.objectWillChange
+            .sink { [weak self, weak item] _ in
+                guard let self = self, item != nil else { return }
+                self.objectWillChange.send()
             }
-            .store(in: &cancellables)
+        // Store with item ID for proper cleanup
+        itemCancellables[item.id] = cancellable
         
         items.append(item)
         processQueue()
@@ -115,6 +118,9 @@ class DownloadQueue: ObservableObject {
         if item.status == .downloading {
             cancelDownload(item)
         }
+        // Clean up the item's subscription to prevent memory leak
+        itemCancellables[item.id]?.cancel()
+        itemCancellables.removeValue(forKey: item.id)
         items.removeAll { $0.id == item.id }
     }
     
@@ -154,7 +160,22 @@ class DownloadQueue: ObservableObject {
     }
     
     func clearCompleted() {
+        let itemsToRemove = items.filter { $0.status == .completed || $0.status == .failed }
+        // Clean up subscriptions for removed items
+        for item in itemsToRemove {
+            itemCancellables[item.id]?.cancel()
+            itemCancellables.removeValue(forKey: item.id)
+        }
         items.removeAll { $0.status == .completed || $0.status == .failed }
+    }
+    
+    deinit {
+        // Clean up all subscriptions to prevent memory leaks
+        cancellables.forEach { $0.cancel() }
+        cancellables.removeAll()
+        
+        itemCancellables.values.forEach { $0.cancel() }
+        itemCancellables.removeAll()
     }
     
     func moveItem(from sourceIndex: Int, to destinationIndex: Int) {
@@ -253,42 +274,48 @@ class DownloadQueue: ObservableObject {
         let downloadTask = QueueDownloadTaskLegacy(url: item.url)
         items[index].downloadTask = downloadTask
         
-        // Subscribe to progress updates
+        // Create a separate cancellable set for this download
+        var downloadCancellables = Set<AnyCancellable>()
+        
+        // Subscribe to progress updates with weak references
         downloadTask.$progress
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] progress in
-                guard let self = self,
+            .sink { [weak self, weak item] progress in
+                guard let self = self, let item = item,
                       let idx = self.items.firstIndex(where: { $0.id == item.id }) else { return }
                 self.items[idx].progress = progress
             }
-            .store(in: &cancellables)
+            .store(in: &downloadCancellables)
         
         downloadTask.$status
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] status in
-                guard let self = self,
+            .sink { [weak self, weak item] status in
+                guard let self = self, let item = item,
                       let idx = self.items.firstIndex(where: { $0.id == item.id }) else { return }
                 self.items[idx].downloadStatus = status
             }
-            .store(in: &cancellables)
+            .store(in: &downloadCancellables)
         
         downloadTask.$speed
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] speed in
-                guard let self = self,
+            .sink { [weak self, weak item] speed in
+                guard let self = self, let item = item,
                       let idx = self.items.firstIndex(where: { $0.id == item.id }) else { return }
                 self.items[idx].speed = speed
             }
-            .store(in: &cancellables)
+            .store(in: &downloadCancellables)
         
         downloadTask.$eta
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] eta in
-                guard let self = self,
+            .sink { [weak self, weak item] eta in
+                guard let self = self, let item = item,
                       let idx = self.items.firstIndex(where: { $0.id == item.id }) else { return }
                 self.items[idx].eta = eta
             }
-            .store(in: &cancellables)
+            .store(in: &downloadCancellables)
+        
+        // Store download-specific cancellables temporarily
+        self.cancellables.formUnion(downloadCancellables)
         
         // Start the download
         do {

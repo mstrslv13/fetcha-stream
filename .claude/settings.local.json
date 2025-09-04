@@ -48,7 +48,8 @@
       "Bash(done)",
       "Bash(tree:*)",
       "Bash(cd:*)",
-      "Bash(rsync:*)"
+      "Bash(rsync:*)",
+      "Bash(git tag:*)"
     ],
     "deny": [],
     "ask": [],

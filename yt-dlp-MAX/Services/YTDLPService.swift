@@ -409,8 +409,11 @@ class YTDLPService {
         case "edge":
             arguments.append(contentsOf: ["--cookies-from-browser", "edge"])
         case "file":
-            if let cookiePath = UserDefaults.standard.string(forKey: "cookieFilePath") {
-                arguments.append(contentsOf: ["--cookies", cookiePath])
+            if let cookiePath = UserDefaults.standard.string(forKey: "cookieFilePath"),
+               let validatedPath = InputValidator.validateCookiePath(cookiePath) {
+                arguments.append(contentsOf: ["--cookies", validatedPath])
+            } else {
+                DebugLogger.shared.log("Cookie file validation failed", level: .warning)
             }
         default:
             break
@@ -488,8 +491,9 @@ class YTDLPService {
         case "edge":
             args.append(contentsOf: ["--cookies-from-browser", "edge"])
         case "file":
-            if let cookiePath = UserDefaults.standard.string(forKey: "cookieFilePath") {
-                args.append(contentsOf: ["--cookies", cookiePath])
+            if let cookiePath = UserDefaults.standard.string(forKey: "cookieFilePath"),
+               let validatedPath = InputValidator.validateCookiePath(cookiePath) {
+                args.append(contentsOf: ["--cookies", validatedPath])
             }
         default:
             break
@@ -604,19 +608,37 @@ class YTDLPService {
         case "edge":
             arguments.append(contentsOf: ["--cookies-from-browser", "edge"])
         case "file":
-            if let cookiePath = UserDefaults.standard.string(forKey: "cookieFilePath") {
-                arguments.append(contentsOf: ["--cookies", cookiePath])
+            if let cookiePath = UserDefaults.standard.string(forKey: "cookieFilePath"),
+               let validatedPath = InputValidator.validateCookiePath(cookiePath) {
+                arguments.append(contentsOf: ["--cookies", validatedPath])
+            } else {
+                DebugLogger.shared.log("Cookie file validation failed", level: .warning)
             }
         default:
             break // No cookies
         }
         
-        // Add the URL at the end
-        arguments.append(urlString)
+        // Validate and add the URL at the end
+        let sanitizedURL = sanitizeURL(urlString)
+        guard !sanitizedURL.isEmpty else {
+            throw YTDLPError.processFailed("Invalid URL provided")
+        }
+        arguments.append(sanitizedURL)
         
         process.arguments = arguments
         
-        let fullCommand = "\(ytdlpPath) \(process.arguments!.joined(separator: " "))"
+        // Create safe command string for logging (escape special characters)
+        let safeArgs: [String] = process.arguments?.map { arg in
+            // Escape shell special characters for safe logging
+            if arg.contains(" ") || arg.contains("'") || arg.contains("\"") || 
+               arg.contains(";") || arg.contains("&") || arg.contains("|") || 
+               arg.contains("$") || arg.contains("`") {
+                return "'\(arg.replacingOccurrences(of: "'", with: "'\\'\''"))'"
+            } else {
+                return arg
+            }
+        } ?? []
+        let fullCommand = "\(ytdlpPath) \(safeArgs.joined(separator: " "))"
         DebugLogger.shared.log("Fetching metadata", level: .command, details: fullCommand)
         
         // Set up pipes for both output and errors
@@ -877,10 +899,14 @@ class YTDLPService {
             PersistentDebugLogger.shared.log("Using Edge cookies", level: .info)
             DebugLogger.shared.log("Using Edge cookies", level: .info)
         case "file":
-            if let cookiePath = UserDefaults.standard.string(forKey: "cookieFilePath") {
-                arguments.append(contentsOf: ["--cookies", cookiePath])
-                PersistentDebugLogger.shared.log("Using cookie file: \(cookiePath)", level: .info)
-                DebugLogger.shared.log("Using cookie file: \(cookiePath)", level: .info)
+            if let cookiePath = UserDefaults.standard.string(forKey: "cookieFilePath"),
+               let validatedPath = InputValidator.validateCookiePath(cookiePath) {
+                arguments.append(contentsOf: ["--cookies", validatedPath])
+                PersistentDebugLogger.shared.log("Using cookie file: \(validatedPath)", level: .info)
+                DebugLogger.shared.log("Using cookie file: \(validatedPath)", level: .info)
+            } else {
+                PersistentDebugLogger.shared.log("Cookie file validation failed", level: .warning)
+                DebugLogger.shared.log("Cookie file validation failed", level: .warning)
             }
         case "none":
             break // No cookies
@@ -889,13 +915,32 @@ class YTDLPService {
             DebugLogger.shared.log("Unknown cookie source: \(preferences.cookieSource)", level: .warning)
         }
         
-        // Add the URL last
-        arguments.append(url)
+        // Validate and add the URL last
+        let sanitizedURL = sanitizeURL(url)
+        guard !sanitizedURL.isEmpty else {
+            Task {
+                await MainActor.run {
+                    downloadTask.errorMessage = "Invalid URL provided"
+                    downloadTask.status = .failed
+                }
+            }
+            throw YTDLPError.processFailed("Invalid URL provided")
+        }
+        arguments.append(sanitizedURL)
         
         process.arguments = arguments
         
-        // Log the full command being executed
-        let fullCommand = "\(ytdlpPath) \(arguments.joined(separator: " "))"
+        // Log the full command being executed (with proper escaping)
+        let safeArgs: [String] = arguments.map { arg in
+            if arg.contains(" ") || arg.contains("'") || arg.contains("\"") || 
+               arg.contains(";") || arg.contains("&") || arg.contains("|") || 
+               arg.contains("$") || arg.contains("`") {
+                return "'\(arg.replacingOccurrences(of: "'", with: "'\\'\''"))'"
+            } else {
+                return arg
+            }
+        }
+        let fullCommand = "\(ytdlpPath) \(safeArgs.joined(separator: " "))"
         DebugLogger.shared.log("Executing yt-dlp command", level: .command, details: fullCommand)
         
         // Set up environment to include common binary paths
@@ -1488,6 +1533,34 @@ class YTDLPService {
                 downloadTask.downloadStatus = "Downloading"
             }
         }
+    }
+    
+    // MARK: - Security Helper Methods
+    
+    /// Sanitize file paths to prevent path traversal attacks
+    private func sanitizeFilePath(_ path: String) -> String {
+        // Use InputValidator for proper validation
+        guard let validatedPath = InputValidator.validatePath(path) else {
+            DebugLogger.shared.log("Invalid path rejected: \(path)", level: .warning)
+            return ""
+        }
+        return validatedPath
+    }
+    
+    /// Validate and sanitize URLs to prevent injection attacks
+    private func sanitizeURL(_ urlString: String) -> String {
+        // Use InputValidator for proper URL validation
+        guard let validatedURL = InputValidator.validateURL(urlString) else {
+            DebugLogger.shared.log("Invalid URL rejected: \(urlString)", level: .warning)
+            return ""
+        }
+        return validatedURL
+    }
+    
+    /// Sanitize filename to prevent directory traversal and command injection
+    private func sanitizeFilename(_ filename: String) -> String {
+        // Use InputValidator for proper filename sanitization
+        return InputValidator.validateFilename(filename)
     }
 }
 
