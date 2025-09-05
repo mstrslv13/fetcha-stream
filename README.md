@@ -11,6 +11,7 @@ Fetch streaming media as easy as CMD+C! Simple, modern and powerful. Download st
 Built with Swift and SwiftUI, Fetcha provides a beautiful native interface for yt-dlp with browser cookie support and advanced features.  The app follows the VLC model: simple for beginners, powerful when needed.
 
 Whether you're saving tutorials for offline viewing, archiving content, or building a media library, Fetcha makes it simple. No command line knowledge required – just copy the video URL from your browser and the download will begin.
+
 ## Features
 
 - 🎬 **Download videos from YouTube, X** and 1000+ sites
