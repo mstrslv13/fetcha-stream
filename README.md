@@ -1,4 +1,4 @@
-# Fetcha
+# Fetcha Stream
 
 Fetch streaming media as easy as CMD+C! Simple, modern and powerful. Download straight from your web browser.
 
@@ -45,7 +45,7 @@ brew install ffmpeg
 
 ### Download Fetcha
 
-1. Download the latest release from [Releases](https://github.com/mstrslv13/fetcha/releases)
+1. Download the latest release from [Releases](https://github.com/mstrslv13/fetcha-stream/releases)
 2. Open the DMG file and drag Fetcha to your Applications folder
 
 ## Building from Source
@@ -58,7 +58,7 @@ brew install ffmpeg
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/mstrslv13/fetcha.git
+git clone https://github.com/mstrslv13/fetcha-stream.git
 cd fetcha
 ```
 
@@ -139,7 +139,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Support
 
-For issues and feature requests, please use the [GitHub Issues](https://github.com/mstrslv13/fetcha/issues) page.
+For issues and feature requests, please use the [GitHub Issues](https://github.com/mstrslv13/fetcha-stream/issues) page.
 
 ---
 
