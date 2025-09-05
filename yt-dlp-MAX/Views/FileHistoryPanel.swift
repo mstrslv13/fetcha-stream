@@ -391,19 +391,6 @@ struct DebugLogsView: View {
                 }
                 
                 Spacer()
-                
-                // Open console button
-                Button(action: {
-                    openDebugConsole()
-                }) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "terminal")
-                            .font(.system(size: 10))
-                        Text("Console")
-                            .font(.system(size: 11))
-                    }
-                }
-                .buttonStyle(.plain)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
@@ -452,15 +439,6 @@ struct DebugLogsView: View {
         }
     }
     
-    func openDebugConsole() {
-        let debugView = DebugView()
-        let hostingController = NSHostingController(rootView: debugView)
-        let window = NSWindow(contentViewController: hostingController)
-        window.title = "Debug Console"
-        window.setContentSize(NSSize(width: 600, height: 400))
-        window.styleMask = [.titled, .closable, .resizable]
-        window.makeKeyAndOrderFront(nil)
-    }
 }
 
 struct DebugLogRow: View {

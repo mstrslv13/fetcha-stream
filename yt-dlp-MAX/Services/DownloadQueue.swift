@@ -240,7 +240,7 @@ class DownloadQueue: ObservableObject {
             items[index].progress = 0
             items[index].errorMessage = "Retrying with: \(format.qualityLabel)"
             
-            DebugLogger.shared.log(
+            PersistentDebugLogger.shared.log(
                 "Manual format retry",
                 level: .info,
                 details: "Using format: \(format.format_id) - \(format.qualityLabel)"
@@ -401,7 +401,7 @@ class DownloadQueue: ObservableObject {
                 if let idx = self.items.firstIndex(where: { $0.id == item.id }) {
                     self.items[idx].status = .failed
                     self.items[idx].errorMessage = error.localizedDescription
-                    DebugLogger.shared.log("Download failed for: \(item.title)", level: .error, details: error.localizedDescription)
+                    PersistentDebugLogger.shared.log("Download failed for: \(item.title)", level: .error, details: error.localizedDescription)
                 }
                 self.activeDownloads.remove(item.id)
                 // Don't automatically retry failed items

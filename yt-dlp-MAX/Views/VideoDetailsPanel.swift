@@ -268,7 +268,7 @@ struct VideoDetailsPanel: View {
                                     // Use the DownloadHistory method to find the actual file
                                     if let actualFileURL = DownloadHistory.shared.findActualFile(for: historyItem) {
                                         NSWorkspace.shared.activateFileViewerSelecting([actualFileURL])
-                                        DebugLogger.shared.log("Showing file in Finder", level: .info, details: actualFileURL.lastPathComponent)
+                                        PersistentDebugLogger.shared.log("Showing file in Finder", level: .info, details: actualFileURL.lastPathComponent)
                                     } else {
                                         // Fall back to directory
                                         let url = URL(fileURLWithPath: historyItem.resolvedFilePath)
@@ -288,9 +288,9 @@ struct VideoDetailsPanel: View {
                                     // Use the DownloadHistory method to find the actual file
                                     if let actualFileURL = DownloadHistory.shared.findActualFile(for: historyItem) {
                                         NSWorkspace.shared.open(actualFileURL)
-                                        DebugLogger.shared.log("Opening file", level: .info, details: actualFileURL.lastPathComponent)
+                                        PersistentDebugLogger.shared.log("Opening file", level: .info, details: actualFileURL.lastPathComponent)
                                     } else {
-                                        DebugLogger.shared.log(
+                                        PersistentDebugLogger.shared.log(
                                             "File not found: \(historyItem.title)",
                                             level: .warning,
                                             details: "Path: \(historyItem.resolvedFilePath)"

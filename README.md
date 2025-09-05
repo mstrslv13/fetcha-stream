@@ -1,21 +1,26 @@
 # Fetcha
 
-A clean, modern YouTube downloader for macOS with a native SwiftUI interface.
+Fetch streaming media as easy as CMD+C! Simple, modern and powerful. Download straight from your web browser.
+
+[<img width="153" height="153" alt="image" src="https://github.com/user-attachments/assets/c0f70713-83e4-4688-9a63-22f87681062d" />](https://buymeacoffee.com/mstrslva) [<img width="545" height="153" alt="yellow-button" src="https://github.com/user-attachments/assets/a801152e-2487-420e-bb08-96018d5b08cf" />](https://buymeacoffee.com/mstrslva)
 
 ![macOS](https://img.shields.io/badge/macOS-15.0%2B-blue)
 ![Swift](https://img.shields.io/badge/Swift-5.0-orange)
 ![Version](https://img.shields.io/badge/version-1.0-green)
 
+Built with Swift and SwiftUI, Fetcha provides a beautiful native interface for yt-dlp with browser cookie support and advanced features.  The app follows the VLC model: simple for beginners, powerful when needed.
+
+Whether you're saving tutorials for offline viewing, archiving content, or building a media library, Fetcha makes it simple. No command line knowledge required – just copy the video URL from your browser and the download will begin.
 ## Features
 
-- 🎬 **Download videos from YouTube** and 1000+ sites
-- 📊 **Multiple quality options** - Choose your preferred format
+- 🎬 **Download videos from YouTube, X** and 1000+ sites
+- 📊 **Multiple quality options** - Choose your preferred resolution and container format
 - 🎯 **Queue management** - Download multiple videos concurrently
 - 🍪 **Browser cookie support** - Access private/age-restricted content
 - 📜 **Download history** - Track and search all your downloads
-- 🔒 **Privacy mode** - Browse without saving history
-- 🖼️ **Thumbnail support** - Embed and display video thumbnails
-- ⚡ **Optimized performance** - Minimal CPU and memory usage
+- 🔒 **Privacy mode** - Download without saving history
+- 🖼️ **Post-processing** - Extract audio files automatically in wav, mp3, flac, m4a, ogg, and opus formats
+- ⚡ **Optimized performance** - Native SwiftUI, minimal CPU and memory usage
 
 ## Installation
 

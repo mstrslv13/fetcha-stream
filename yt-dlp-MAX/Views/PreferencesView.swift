@@ -942,7 +942,7 @@ struct AboutView: View {
         VStack(spacing: 12) {
             Spacer(minLength: 20)
             
-            // App Icon - Dog logo
+            // App Icon - Bobo logo
             Image("DogLogo")
                 .resizable()
                 .scaledToFit()
@@ -956,7 +956,7 @@ struct AboutView: View {
                 .font(.system(size: 16))
                 .foregroundColor(.secondary)
             
-            Text("A simple, powerful streaming media fetcher for macOS")
+            Text("Fetch streaming media as easy as CMD+C! Simple, modern and powerful.")
                 .font(.system(size: 16))
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 30)

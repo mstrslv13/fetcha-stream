@@ -178,7 +178,7 @@ class DownloadHistory: ObservableObject {
     func handlePrivateModeToggle() {
         if AppPreferences.shared.privateMode {
             // Entering private mode - clear current history from memory
-            DebugLogger.shared.log("Private mode enabled - clearing memory history", level: .info)
+            PersistentDebugLogger.shared.log("Private mode enabled - clearing memory history", level: .info)
             
             // Properly clear the history set to release memory
             history.removeAll(keepingCapacity: false)
@@ -190,7 +190,7 @@ class DownloadHistory: ObservableObject {
             }
         } else {
             // Exiting private mode - reload history
-            DebugLogger.shared.log("Private mode disabled - reloading history", level: .info)
+            PersistentDebugLogger.shared.log("Private mode disabled - reloading history", level: .info)
             
             // Clear any existing history first to avoid duplicates
             history.removeAll(keepingCapacity: false)

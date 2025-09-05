@@ -328,12 +328,6 @@ struct ContentView: View {
         //         autoAdjustPanelWidth()
         //     }
         // }
-        .onChange(of: showingDebugView) { oldValue, newValue in
-            if newValue {
-                openDebugWindow()
-                showingDebugView = false
-            }
-        }
         .onChange(of: showingPreferences) { oldValue, newValue in
             if newValue {
                 openPreferencesWindow()
@@ -779,16 +773,6 @@ struct ContentView: View {
         urlString = ""
         videoInfo = nil
         selectedFormat = nil
-    }
-    
-    private func openDebugWindow() {
-        let debugView = DebugView()
-        let hostingController = NSHostingController(rootView: debugView)
-        let window = NSWindow(contentViewController: hostingController)
-        window.title = "Debug Console"
-        window.setContentSize(NSSize(width: 600, height: 400))
-        window.styleMask = [.titled, .closable, .resizable]
-        window.makeKeyAndOrderFront(nil)
     }
     
     private func openPreferencesWindow() {

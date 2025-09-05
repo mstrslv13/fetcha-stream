@@ -215,7 +215,7 @@ struct MediaControlBar: View {
             // Open the file
             NSWorkspace.shared.open(actualFileURL)
             
-            DebugLogger.shared.log(
+            PersistentDebugLogger.shared.log(
                 "Opened file: \(file.title)",
                 level: .info,
                 details: "Path: \(actualFileURL.path)"
@@ -240,7 +240,7 @@ struct MediaControlBar: View {
                     NSWorkspace.shared.open(parentURL)
                 }
                 
-                DebugLogger.shared.log(
+                PersistentDebugLogger.shared.log(
                     "File not found: \(file.title)",
                     level: .warning,
                     details: "Path: \(file.resolvedFilePath)"

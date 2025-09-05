@@ -14,7 +14,6 @@
 		F86C62622E58F56900BC7763 /* QueueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F86C62602E58F56900BC7763 /* QueueView.swift */; };
 		F86C62632E58F56900BC7763 /* DownloadQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = F86C625D2E58F56900BC7763 /* DownloadQueue.swift */; };
 		F86C62642E58F56900BC7763 /* QueueSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F86C625F2E58F56900BC7763 /* QueueSettingsView.swift */; };
-		F889F7092E591D3B000F863D /* DebugView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F889F7042E591D3B000F863D /* DebugView.swift */; };
 		F889F70A2E591D3B000F863D /* FormatTypeSelector.swift in Sources */ = {isa = PBXBuildFile; fileRef = F889F7052E591D3B000F863D /* FormatTypeSelector.swift */; };
 		F889F70B2E591D3B000F863D /* QueueSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F889F7062E591D3B000F863D /* QueueSettingsView.swift */; };
 		F889F70C2E591D3B000F863D /* QueueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F889F7072E591D3B000F863D /* QueueView.swift */; };
@@ -43,11 +42,9 @@
 		F8522F1F2E588C4400B30F2A /* yt-dlp-MAXUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "yt-dlp-MAXUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F8522F3D2E588F8E00B30F2A /* VideoInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoInfo.swift; sourceTree = "<group>"; };
 		F8522F472E58948A00B30F2A /* DownloadTask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadTask.swift; sourceTree = "<group>"; };
-		F8522FC92E58A22800B30F2A /* yt-dlp-MAX.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = "yt-dlp-MAX.xctestplan"; sourceTree = "<group>"; };
 		F86C625D2E58F56900BC7763 /* DownloadQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadQueue.swift; sourceTree = "<group>"; };
 		F86C625F2E58F56900BC7763 /* QueueSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueueSettingsView.swift; sourceTree = "<group>"; };
 		F86C62602E58F56900BC7763 /* QueueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueueView.swift; sourceTree = "<group>"; };
-		F889F7042E591D3B000F863D /* DebugView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugView.swift; sourceTree = "<group>"; };
 		F889F7052E591D3B000F863D /* FormatTypeSelector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormatTypeSelector.swift; sourceTree = "<group>"; };
 		F889F7062E591D3B000F863D /* QueueSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueueSettingsView.swift; sourceTree = "<group>"; };
 		F889F7072E591D3B000F863D /* QueueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueueView.swift; sourceTree = "<group>"; };
@@ -57,16 +54,6 @@
 		F8522F092E588C4300B30F2A /* yt-dlp-MAX */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "yt-dlp-MAX";
-			sourceTree = "<group>";
-		};
-		F8522F182E588C4400B30F2A /* yt-dlp-MAXTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "yt-dlp-MAXTests";
-			sourceTree = "<group>";
-		};
-		F8522F222E588C4400B30F2A /* yt-dlp-MAXUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "yt-dlp-MAXUITests";
 			sourceTree = "<group>";
 		};
 		F8522F392E588EE600B30F2A /* Services */ = {
@@ -107,10 +94,7 @@
 				F889F7082E591D3B000F863D /* Views */,
 				F86C625E2E58F56900BC7763 /* Services */,
 				F86C62612E58F56900BC7763 /* Views */,
-				F8522FC92E58A22800B30F2A /* yt-dlp-MAX.xctestplan */,
 				F8522F092E588C4300B30F2A /* yt-dlp-MAX */,
-				F8522F182E588C4400B30F2A /* yt-dlp-MAXTests */,
-				F8522F222E588C4400B30F2A /* yt-dlp-MAXUITests */,
 				F8522F082E588C4300B30F2A /* Products */,
 				F8522F392E588EE600B30F2A /* Services */,
 				F8522F3B2E588F0F00B30F2A /* Models */,
@@ -158,7 +142,6 @@
 		F889F7082E591D3B000F863D /* Views */ = {
 			isa = PBXGroup;
 			children = (
-				F889F7042E591D3B000F863D /* DebugView.swift */,
 				F889F7052E591D3B000F863D /* FormatTypeSelector.swift */,
 				F889F7062E591D3B000F863D /* QueueSettingsView.swift */,
 				F889F7072E591D3B000F863D /* QueueView.swift */,
@@ -206,9 +189,6 @@
 			dependencies = (
 				F8522F172E588C4400B30F2A /* PBXTargetDependency */,
 			);
-			fileSystemSynchronizedGroups = (
-				F8522F182E588C4400B30F2A /* yt-dlp-MAXTests */,
-			);
 			name = "yt-dlp-MAXTests";
 			packageProductDependencies = (
 			);
@@ -228,9 +208,6 @@
 			);
 			dependencies = (
 				F8522F212E588C4400B30F2A /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				F8522F222E588C4400B30F2A /* yt-dlp-MAXUITests */,
 			);
 			name = "yt-dlp-MAXUITests";
 			packageProductDependencies = (
@@ -317,7 +294,6 @@
 				F86C62622E58F56900BC7763 /* QueueView.swift in Sources */,
 				F86C62632E58F56900BC7763 /* DownloadQueue.swift in Sources */,
 				F86C62642E58F56900BC7763 /* QueueSettingsView.swift in Sources */,
-				F889F7092E591D3B000F863D /* DebugView.swift in Sources */,
 				F889F70A2E591D3B000F863D /* FormatTypeSelector.swift in Sources */,
 				F889F70B2E591D3B000F863D /* QueueSettingsView.swift in Sources */,
 				F889F70C2E591D3B000F863D /* QueueView.swift in Sources */,

@@ -23,7 +23,7 @@ class YTDLPService {
         // FIRST: Check for bundled version in app Resources
         if let bundledPath = Bundle.main.path(forResource: name, ofType: nil, inDirectory: "bin") {
             if FileManager.default.fileExists(atPath: bundledPath) {
-                DebugLogger.shared.log("Using bundled \(name)", level: .success)
+                PersistentDebugLogger.shared.log("Using bundled \(name)", level: .success)
                 return bundledPath
             }
         }
@@ -39,7 +39,7 @@ class YTDLPService {
         
         for path in possiblePaths {
             if FileManager.default.fileExists(atPath: path) {
-                DebugLogger.shared.log("Found \(name) at: \(path)", level: .success)
+                PersistentDebugLogger.shared.log("Found \(name) at: \(path)", level: .success)
                 return path
             }
         }
@@ -59,12 +59,12 @@ class YTDLPService {
             if process.terminationStatus == 0 {
                 let data = pipe.fileHandleForReading.readDataToEndOfFile()
                 if let path = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) {
-                    DebugLogger.shared.log("Found \(name) via which: \(path)", level: .success)
+                    PersistentDebugLogger.shared.log("Found \(name) via which: \(path)", level: .success)
                     return path
                 }
             }
         } catch {
-            DebugLogger.shared.log("Failed to find \(name): \(error)", level: .warning)
+            PersistentDebugLogger.shared.log("Failed to find \(name): \(error)", level: .warning)
         }
         
         return nil
@@ -118,12 +118,12 @@ class YTDLPService {
     // Old download method - kept for compatibility but shouldn't be used
     func downloadVideo(task: DownloadTask) async throws {
         guard let ytdlpPath = findYTDLP() else {
-            DebugLogger.shared.log("yt-dlp not found in any standard location", level: .error)
+            PersistentDebugLogger.shared.log("yt-dlp not found in any standard location", level: .error)
             throw YTDLPError.ytdlpNotFound
         }
         
-        DebugLogger.shared.log("Starting download for: \(task.videoInfo.title)", level: .info)
-        DebugLogger.shared.log("Using yt-dlp at: \(ytdlpPath)", level: .info)
+        PersistentDebugLogger.shared.log("Starting download for: \(task.videoInfo.title)", level: .info)
+        PersistentDebugLogger.shared.log("Using yt-dlp at: \(ytdlpPath)", level: .info)
         
         // Update the task state
         await MainActor.run {
@@ -163,7 +163,7 @@ class YTDLPService {
         
         // Log the full command for debugging
         let fullCommand = "\(ytdlpPath) \(arguments.joined(separator: " "))"
-        DebugLogger.shared.log("Executing command", level: .command, details: fullCommand)
+        PersistentDebugLogger.shared.log("Executing command", level: .command, details: fullCommand)
         
         // Set up pipes for output and errors separately
         let outputPipe = Pipe()
@@ -171,7 +171,7 @@ class YTDLPService {
         process.standardOutput = outputPipe
         process.standardError = errorPipe
         
-        DebugLogger.shared.log("Process pipes configured", level: .info)
+        PersistentDebugLogger.shared.log("Process pipes configured", level: .info)
         
         // Store the process so we can cancel it if needed
         task.process = process
@@ -185,14 +185,14 @@ class YTDLPService {
                 let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
                 if !trimmedLine.isEmpty {
                     if trimmedLine.contains("ERROR") {
-                        DebugLogger.shared.log("yt-dlp error", level: .error, details: trimmedLine)
+                        PersistentDebugLogger.shared.log("yt-dlp error", level: .error, details: trimmedLine)
                     } else if trimmedLine.contains("WARNING") {
-                        DebugLogger.shared.log("yt-dlp warning", level: .warning, details: trimmedLine)
+                        PersistentDebugLogger.shared.log("yt-dlp warning", level: .warning, details: trimmedLine)
                     } else if trimmedLine.contains("[download]") {
                         // Parse progress but don't log every update
                         self.parseProgress(line: trimmedLine, for: task)
                     } else {
-                        DebugLogger.shared.log("yt-dlp", level: .info, details: trimmedLine)
+                        PersistentDebugLogger.shared.log("yt-dlp", level: .info, details: trimmedLine)
                     }
                 }
             }
@@ -208,13 +208,13 @@ class YTDLPService {
                 if !trimmedError.isEmpty {
                     // Categorize stderr output
                     if trimmedError.contains("[debug]") {
-                        DebugLogger.shared.log("Debug", level: .info, details: trimmedError)
+                        PersistentDebugLogger.shared.log("Debug", level: .info, details: trimmedError)
                     } else if trimmedError.contains("WARNING") {
-                        DebugLogger.shared.log("Warning", level: .warning, details: trimmedError)
+                        PersistentDebugLogger.shared.log("Warning", level: .warning, details: trimmedError)
                     } else if trimmedError.contains("ERROR") || trimmedError.contains("error:") {
-                        DebugLogger.shared.log("Error", level: .error, details: trimmedError)
+                        PersistentDebugLogger.shared.log("Error", level: .error, details: trimmedError)
                     } else {
-                        DebugLogger.shared.log("Info", level: .info, details: trimmedError)
+                        PersistentDebugLogger.shared.log("Info", level: .info, details: trimmedError)
                     }
                 }
             }
@@ -230,7 +230,7 @@ class YTDLPService {
             // Process registration removed - handled internally
             
             try process.run()
-            DebugLogger.shared.log("Download process started", level: .success)
+            PersistentDebugLogger.shared.log("Download process started", level: .success)
             
             // Create timeout task (10 minutes for downloads)
             let timeoutTask = Task {
@@ -261,7 +261,7 @@ class YTDLPService {
             timeoutTask.cancel()
             
         } catch {
-            DebugLogger.shared.log("Failed to start download", level: .error, details: error.localizedDescription)
+            PersistentDebugLogger.shared.log("Failed to start download", level: .error, details: error.localizedDescription)
             // Process cleanup handled internally
             
             // Clean up
@@ -280,25 +280,25 @@ class YTDLPService {
         
         // Check if it succeeded
         if process.terminationStatus == 0 {
-            DebugLogger.shared.log("Download completed successfully", level: .success)
+            PersistentDebugLogger.shared.log("Download completed successfully", level: .success)
             await MainActor.run {
                 task.state = .completed
                 task.progress = 100.0
             }
         } else if process.terminationStatus == 15 {
             // 15 is SIGTERM - user cancelled
-            DebugLogger.shared.log("Download cancelled by user", level: .warning)
+            PersistentDebugLogger.shared.log("Download cancelled by user", level: .warning)
             await MainActor.run {
                 task.state = .cancelled
             }
         } else {
             let errorMsg = "Download failed with exit code: \(process.terminationStatus)"
-            DebugLogger.shared.log(errorMsg, level: .error)
+            PersistentDebugLogger.shared.log(errorMsg, level: .error)
             
             // Try to read any remaining error output
             let finalErrorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
             if let finalError = String(data: finalErrorData, encoding: .utf8), !finalError.isEmpty {
-                DebugLogger.shared.log("Error details", level: .error, details: finalError)
+                PersistentDebugLogger.shared.log("Error details", level: .error, details: finalError)
             }
             
             await MainActor.run {
@@ -374,7 +374,7 @@ class YTDLPService {
                let validatedPath = InputValidator.validateCookiePath(cookiePath) {
                 arguments.append(contentsOf: ["--cookies", validatedPath])
             } else {
-                DebugLogger.shared.log("Cookie file validation failed", level: .warning)
+                PersistentDebugLogger.shared.log("Cookie file validation failed", level: .warning)
             }
         default:
             break
@@ -424,7 +424,7 @@ class YTDLPService {
     func fetchPlaylistInfo(urlString: String, limit: Int? = nil) async throws -> PlaylistConfirmationView.PlaylistInfo {
         let ytdlpPath = try getYTDLPPath()
         
-        DebugLogger.shared.log("Fetching playlist info for: \(urlString)", level: .info)
+        PersistentDebugLogger.shared.log("Fetching playlist info for: \(urlString)", level: .info)
         
         let process = Process()
         process.executableURL = URL(fileURLWithPath: ytdlpPath)
@@ -520,7 +520,7 @@ class YTDLPService {
                     }
                 }
             } catch {
-                DebugLogger.shared.log("Failed to parse playlist JSON: \(error)", level: .error)
+                PersistentDebugLogger.shared.log("Failed to parse playlist JSON: \(error)", level: .error)
                 throw error
             }
         }
@@ -537,8 +537,8 @@ class YTDLPService {
     func fetchMetadata(for urlString: String) async throws -> VideoInfo {
         let ytdlpPath = try getYTDLPPath()  // Consistent approach
         
-        DebugLogger.shared.log("Fetching metadata for: \(urlString)", level: .info)
-        DebugLogger.shared.log("Using yt-dlp at: \(ytdlpPath)", level: .info)
+        PersistentDebugLogger.shared.log("Fetching metadata for: \(urlString)", level: .info)
+        PersistentDebugLogger.shared.log("Using yt-dlp at: \(ytdlpPath)", level: .info)
         
         let process = Process()
         process.executableURL = URL(fileURLWithPath: ytdlpPath)
@@ -572,7 +572,7 @@ class YTDLPService {
                let validatedPath = InputValidator.validateCookiePath(cookiePath) {
                 arguments.append(contentsOf: ["--cookies", validatedPath])
             } else {
-                DebugLogger.shared.log("Cookie file validation failed", level: .warning)
+                PersistentDebugLogger.shared.log("Cookie file validation failed", level: .warning)
             }
         default:
             break // No cookies
@@ -599,7 +599,7 @@ class YTDLPService {
             }
         } ?? []
         let fullCommand = "\(ytdlpPath) \(safeArgs.joined(separator: " "))"
-        DebugLogger.shared.log("Fetching metadata", level: .command, details: fullCommand)
+        PersistentDebugLogger.shared.log("Fetching metadata", level: .command, details: fullCommand)
         
         // Set up pipes for both output and errors
         let outputPipe = Pipe()
@@ -655,18 +655,18 @@ class YTDLPService {
             // Something went wrong - let's see what yt-dlp said
             let errorMessage = String(data: errorData, encoding: .utf8) ?? "Unknown error"
             
-            DebugLogger.shared.log("Metadata fetch failed", level: .error, details: "Exit code: \(process.terminationStatus)\n\(errorMessage)")
+            PersistentDebugLogger.shared.log("Metadata fetch failed", level: .error, details: "Exit code: \(process.terminationStatus)\n\(errorMessage)")
             
             // Throw an error with the message
             throw YTDLPError.processFailed(errorMessage)
         }
         
         // Log the size of data received
-        DebugLogger.shared.log("Received \(data.count) bytes of metadata", level: .info)
+        PersistentDebugLogger.shared.log("Received \(data.count) bytes of metadata", level: .info)
         
         // Check if we got any data
         guard !data.isEmpty else {
-            DebugLogger.shared.log("No data received from yt-dlp", level: .error)
+            PersistentDebugLogger.shared.log("No data received from yt-dlp", level: .error)
             throw YTDLPError.invalidJSON("No data received from yt-dlp")
         }
         
@@ -674,11 +674,11 @@ class YTDLPService {
         if let jsonString = String(data: data, encoding: .utf8) {
             // Log first 500 characters for debugging
             let preview = String(jsonString.prefix(500))
-            DebugLogger.shared.log("JSON preview", level: .info, details: "\(preview)...")
+            PersistentDebugLogger.shared.log("JSON preview", level: .info, details: "\(preview)...")
             
             // Check if it's actually JSON
             if !jsonString.trimmingCharacters(in: .whitespacesAndNewlines).starts(with: "{") {
-                DebugLogger.shared.log("Output doesn't look like JSON", level: .error, details: jsonString)
+                PersistentDebugLogger.shared.log("Output doesn't look like JSON", level: .error, details: jsonString)
                 throw YTDLPError.invalidJSON("Output is not valid JSON format")
             }
         }
@@ -688,13 +688,13 @@ class YTDLPService {
             let videoInfo = try JSONDecoder().decode(VideoInfo.self, from: data)
             
             // Success! We got the video information
-            DebugLogger.shared.log("Successfully parsed: \(videoInfo.title)", level: .success)
+            PersistentDebugLogger.shared.log("Successfully parsed: \(videoInfo.title)", level: .success)
             
             return videoInfo
         } catch {
             // JSON parsing failed - this might mean yt-dlp's output format changed
             // or the video has properties we haven't accounted for
-            DebugLogger.shared.log("Failed to decode JSON", level: .error, details: error.localizedDescription)
+            PersistentDebugLogger.shared.log("Failed to decode JSON", level: .error, details: error.localizedDescription)
             throw YTDLPError.invalidJSON("Failed to parse metadata: \(error.localizedDescription)")
         }
     }
@@ -703,7 +703,7 @@ class YTDLPService {
     func downloadVideo(url: String, format: VideoFormat?, outputPath: String, downloadTask: QueueDownloadTask) async throws {
         let ytdlpPath = try getYTDLPPath()
         
-        DebugLogger.shared.log("Queue download starting", level: .info, details: "URL: \(url)")
+        PersistentDebugLogger.shared.log("Queue download starting", level: .info, details: "URL: \(url)")
         
         let process = Process()
         process.executableURL = URL(fileURLWithPath: ytdlpPath)
@@ -719,7 +719,7 @@ class YTDLPService {
             arguments.append("-x")  // Extract audio
             arguments.append("--audio-format")
             arguments.append(preferences.audioFormat)
-            DebugLogger.shared.log("Audio-only mode", level: .info, details: "Format: \(preferences.audioFormat)")
+            PersistentDebugLogger.shared.log("Audio-only mode", level: .info, details: "Format: \(preferences.audioFormat)")
         } else {
             // Add format selection if specified
             if let format = format {
@@ -728,7 +728,7 @@ class YTDLPService {
                 // Check if we need to merge audio
                 if format.needsAudioMerge {
                     formatArg = "\(format.format_id)+bestaudio/\(format.format_id)+bestaudio[ext=mp4]/best"
-                    DebugLogger.shared.log("Format needs audio merge", level: .info, details: formatArg)
+                    PersistentDebugLogger.shared.log("Format needs audio merge", level: .info, details: formatArg)
                 }
             
                 arguments.append(contentsOf: ["-f", formatArg])
@@ -746,7 +746,7 @@ class YTDLPService {
         // Set output path - outputPath should already be correctly determined by DownloadQueue
         // based on format type and user preferences (separate locations for audio/video)
         let downloadPath = outputPath.isEmpty ? preferences.resolvedDownloadPath : outputPath
-        DebugLogger.shared.log("Download path", level: .info, details: "Using path: \(downloadPath)")
+        PersistentDebugLogger.shared.log("Download path", level: .info, details: "Using path: \(downloadPath)")
         
         var outputTemplate = downloadPath
         
@@ -758,7 +758,7 @@ class YTDLPService {
         // Add naming template
         outputTemplate += "/\(preferences.namingTemplate)"
         
-        DebugLogger.shared.log("Output template", level: .info, details: outputTemplate)
+        PersistentDebugLogger.shared.log("Output template", level: .info, details: outputTemplate)
         arguments.append(contentsOf: ["-o", outputTemplate])
         
         // Apply filename sanitization options
@@ -797,7 +797,7 @@ class YTDLPService {
         if let ffmpegPath = findFFmpeg() {
             arguments.append(contentsOf: ["--ffmpeg-location", ffmpegPath])
         } else {
-            DebugLogger.shared.log("FFmpeg not found - features limited", level: .warning, details: "Thumbnail embedding and format merging will not work")
+            PersistentDebugLogger.shared.log("FFmpeg not found - features limited", level: .warning, details: "Thumbnail embedding and format merging will not work")
             PersistentDebugLogger.shared.log("WARNING: ffmpeg not found, video/audio merging and thumbnail embedding will fail", level: .warning)
             
             // Show user alert for missing ffmpeg if not shown before
@@ -856,40 +856,32 @@ class YTDLPService {
         case "safari":
             arguments.append(contentsOf: ["--cookies-from-browser", "safari"])
             PersistentDebugLogger.shared.log("Using Safari cookies", level: .info)
-            DebugLogger.shared.log("Using Safari cookies", level: .info)
         case "chrome":
             arguments.append(contentsOf: ["--cookies-from-browser", "chrome"])
             PersistentDebugLogger.shared.log("Using Chrome cookies", level: .info)
-            DebugLogger.shared.log("Using Chrome cookies", level: .info)
         case "brave":
             arguments.append(contentsOf: ["--cookies-from-browser", "brave"])
             PersistentDebugLogger.shared.log("Using Brave cookies", level: .info)
-            DebugLogger.shared.log("Using Brave cookies", level: .info)
         case "firefox":
             // Firefox often has many cookies which can cause HTTP 413 errors
             // Add domain filtering to reduce cookie count
             arguments.append(contentsOf: ["--cookies-from-browser", "firefox:*.youtube.com,*.googlevideo.com"])
             PersistentDebugLogger.shared.log("Using Firefox cookies (filtered for YouTube domains)", level: .info)
-            DebugLogger.shared.log("Using Firefox cookies (filtered for YouTube domains)", level: .info)
         case "edge":
             arguments.append(contentsOf: ["--cookies-from-browser", "edge"])
             PersistentDebugLogger.shared.log("Using Edge cookies", level: .info)
-            DebugLogger.shared.log("Using Edge cookies", level: .info)
         case "file":
             if let cookiePath = UserDefaults.standard.string(forKey: "cookieFilePath"),
                let validatedPath = InputValidator.validateCookiePath(cookiePath) {
                 arguments.append(contentsOf: ["--cookies", validatedPath])
                 PersistentDebugLogger.shared.log("Using cookie file: \(validatedPath)", level: .info)
-                DebugLogger.shared.log("Using cookie file: \(validatedPath)", level: .info)
             } else {
                 PersistentDebugLogger.shared.log("Cookie file validation failed", level: .warning)
-                DebugLogger.shared.log("Cookie file validation failed", level: .warning)
             }
         case "none":
             break // No cookies
         default:
             PersistentDebugLogger.shared.log("Unknown cookie source: \(preferences.cookieSource)", level: .warning)
-            DebugLogger.shared.log("Unknown cookie source: \(preferences.cookieSource)", level: .warning)
         }
         
         // Validate and add the URL last
@@ -918,7 +910,7 @@ class YTDLPService {
             }
         }
         let fullCommand = "\(ytdlpPath) \(safeArgs.joined(separator: " "))"
-        DebugLogger.shared.log("Executing yt-dlp command", level: .command, details: fullCommand)
+        PersistentDebugLogger.shared.log("Executing yt-dlp command", level: .command, details: fullCommand)
         
         // Set up environment to include common binary paths
         var environment = ProcessInfo.processInfo.environment
@@ -941,7 +933,7 @@ class YTDLPService {
                     let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
                     if !trimmed.isEmpty {
                         // Log ALL yt-dlp output to debug console
-                        DebugLogger.shared.log("yt-dlp", level: .command, details: trimmed)
+                        PersistentDebugLogger.shared.log("yt-dlp", level: .command, details: trimmed)
                         
                         // Capture the destination file path
                         if trimmed.contains("[download] Destination:") {
@@ -950,7 +942,7 @@ class YTDLPService {
                                 Task { @MainActor in
                                     downloadTask.actualFilePath = URL(fileURLWithPath: filePath)
                                 }
-                                DebugLogger.shared.log("Captured file path", level: .info, details: filePath)
+                                PersistentDebugLogger.shared.log("Captured file path", level: .info, details: filePath)
                             }
                         } else if trimmed.contains("[Merger] Merging formats into") {
                             // Also capture merged file path
@@ -961,24 +953,24 @@ class YTDLPService {
                                     Task { @MainActor in
                                         downloadTask.actualFilePath = URL(fileURLWithPath: filePath)
                                     }
-                                    DebugLogger.shared.log("Captured merged file path", level: .info, details: filePath)
+                                    PersistentDebugLogger.shared.log("Captured merged file path", level: .info, details: filePath)
                                 }
                             }
                         }
                         
                         // Also handle specific cases
                         if trimmed.contains("ERROR") {
-                            DebugLogger.shared.log("Download error", level: .error, details: trimmed)
+                            PersistentDebugLogger.shared.log("Download error", level: .error, details: trimmed)
                             Task { @MainActor in
                                 downloadTask.downloadStatus = "Error"
                                 downloadTask.status = .failed
                             }
                         } else if trimmed.contains("WARNING") {
-                            DebugLogger.shared.log("Download warning", level: .warning, details: trimmed)
+                            PersistentDebugLogger.shared.log("Download warning", level: .warning, details: trimmed)
                         } else if trimmed.contains("[download]") {
                             self.parseProgress(line: trimmed, for: downloadTask)
                         } else if trimmed.contains("[ffmpeg]") || trimmed.contains("[Merger]") {
-                            DebugLogger.shared.log("FFmpeg processing", level: .info, details: trimmed)
+                            PersistentDebugLogger.shared.log("FFmpeg processing", level: .info, details: trimmed)
                             Task { @MainActor in
                                 downloadTask.downloadStatus = "Merging"
                             }
@@ -1000,13 +992,13 @@ class YTDLPService {
                         // Log ALL stderr output (including ffmpeg output)
                         if trimmed.contains("ffmpeg") || trimmed.contains("frame=") || trimmed.contains("size=") {
                             // FFmpeg progress output
-                            DebugLogger.shared.log("ffmpeg", level: .command, details: trimmed)
+                            PersistentDebugLogger.shared.log("ffmpeg", level: .command, details: trimmed)
                         } else if trimmed.contains("[debug]") {
-                            DebugLogger.shared.log("Debug", level: .info, details: trimmed)
+                            PersistentDebugLogger.shared.log("Debug", level: .info, details: trimmed)
                         } else if trimmed.contains("WARNING") {
-                            DebugLogger.shared.log("Warning", level: .warning, details: trimmed)
+                            PersistentDebugLogger.shared.log("Warning", level: .warning, details: trimmed)
                         } else if trimmed.contains("ERROR") || trimmed.contains("error:") {
-                            DebugLogger.shared.log("Error", level: .error, details: trimmed)
+                            PersistentDebugLogger.shared.log("Error", level: .error, details: trimmed)
                             
                             // Check for format not available error
                             if trimmed.contains("Requested format is not available") || 
@@ -1019,7 +1011,7 @@ class YTDLPService {
                             }
                         } else {
                             // Default to command level for visibility
-                            DebugLogger.shared.log("Process", level: .command, details: trimmed)
+                            PersistentDebugLogger.shared.log("Process", level: .command, details: trimmed)
                         }
                     }
                 }
@@ -1036,14 +1028,14 @@ class YTDLPService {
         // Start the process
         do {
             try process.run()
-            DebugLogger.shared.log("Download process started", level: .success)
+            PersistentDebugLogger.shared.log("Download process started", level: .success)
             
             await MainActor.run {
                 downloadTask.downloadStatus = "Downloading"
                 downloadTask.status = .downloading
             }
         } catch {
-            DebugLogger.shared.log("Failed to start download", level: .error, details: error.localizedDescription)
+            PersistentDebugLogger.shared.log("Failed to start download", level: .error, details: error.localizedDescription)
             throw error
         }
         
@@ -1056,14 +1048,14 @@ class YTDLPService {
         
         // Check result
         if process.terminationStatus == 0 {
-            DebugLogger.shared.log("Download completed successfully", level: .success)
+            PersistentDebugLogger.shared.log("Download completed successfully", level: .success)
             
             // If actualFilePath wasn't captured from output, try to find the downloaded file
             if downloadTask.actualFilePath == nil {
                 let outputDir = URL(fileURLWithPath: outputPath)
                 let videoTitle = downloadTask.title
                 
-                DebugLogger.shared.log("Searching for downloaded file", level: .info, details: "Title: \(videoTitle), Dir: \(outputPath)")
+                PersistentDebugLogger.shared.log("Searching for downloaded file", level: .info, details: "Title: \(videoTitle), Dir: \(outputPath)")
                 
                 // Try to find the downloaded file in the output directory
                 if let contents = try? FileManager.default.contentsOfDirectory(at: outputDir, includingPropertiesForKeys: [.creationDateKey], options: .skipsHiddenFiles) {
@@ -1105,9 +1097,9 @@ class YTDLPService {
                         await MainActor.run {
                             downloadTask.actualFilePath = foundFile
                         }
-                        DebugLogger.shared.log("Found downloaded file", level: .info, details: foundFile.path)
+                        PersistentDebugLogger.shared.log("Found downloaded file", level: .info, details: foundFile.path)
                     } else {
-                        DebugLogger.shared.log("Could not find downloaded file", level: .warning, details: "Searched in: \(outputPath)")
+                        PersistentDebugLogger.shared.log("Could not find downloaded file", level: .warning, details: "Searched in: \(outputPath)")
                     }
                 }
             }
@@ -1124,7 +1116,7 @@ class YTDLPService {
                 if let actualFile = downloadTask.actualFilePath {
                     extractAudio(from: actualFile, for: downloadTask)
                 } else {
-                    DebugLogger.shared.log("Cannot extract audio - file path not found", level: .warning)
+                    PersistentDebugLogger.shared.log("Cannot extract audio - file path not found", level: .warning)
                 }
                 
                 // Wait a moment for extraction to complete
@@ -1140,7 +1132,7 @@ class YTDLPService {
                         // Store local thumbnail path instead of URL for reliability
                         downloadTask.videoInfo.thumbnail = thumbnail.path
                     }
-                    DebugLogger.shared.log("Found thumbnail file", level: .info, details: thumbnail.lastPathComponent)
+                    PersistentDebugLogger.shared.log("Found thumbnail file", level: .info, details: thumbnail.lastPathComponent)
                 }
             }
             
@@ -1151,12 +1143,12 @@ class YTDLPService {
             }
         } else {
             let errorMsg = "Download failed with exit code: \(process.terminationStatus)"
-            DebugLogger.shared.log(errorMsg, level: .error)
+            PersistentDebugLogger.shared.log(errorMsg, level: .error)
             
             // Read any remaining error output
             let finalError = errorPipe.fileHandleForReading.readDataToEndOfFile()
             if let errorStr = String(data: finalError, encoding: .utf8), !errorStr.isEmpty {
-                DebugLogger.shared.log("Final error", level: .error, details: errorStr)
+                PersistentDebugLogger.shared.log("Final error", level: .error, details: errorStr)
             }
             
             await MainActor.run {
@@ -1170,7 +1162,7 @@ class YTDLPService {
     
     // Handle format not available error by finding alternative format
     private func handleFormatError(for downloadTask: QueueDownloadTask, url: String, outputPath: String) async {
-        DebugLogger.shared.log("Handling format error", level: .warning, details: "Fetching available formats")
+        PersistentDebugLogger.shared.log("Handling format error", level: .warning, details: "Fetching available formats")
         
         do {
             // Fetch available formats for this video
@@ -1234,7 +1226,7 @@ class YTDLPService {
                     downloadTask.errorMessage = "Using alternative format: \(format.qualityLabel)"
                     downloadTask.status = .waiting
                     
-                    DebugLogger.shared.log(
+                    PersistentDebugLogger.shared.log(
                         "Format fallback", 
                         level: .info, 
                         details: "Selected alternative: \(format.format_id) - \(format.qualityLabel)"
@@ -1256,7 +1248,7 @@ class YTDLPService {
                 }
             }
         } catch {
-            DebugLogger.shared.log("Failed to fetch formats", level: .error, details: error.localizedDescription)
+            PersistentDebugLogger.shared.log("Failed to fetch formats", level: .error, details: error.localizedDescription)
             await MainActor.run {
                 downloadTask.errorMessage = "Failed to fetch alternative formats"
                 downloadTask.status = .failed
@@ -1299,7 +1291,7 @@ class YTDLPService {
         
         // Check if file already has the target extension
         if filePath.pathExtension.lowercased() == targetContainer.lowercased() {
-            DebugLogger.shared.log("File already in target format", level: .info, details: targetContainer)
+            PersistentDebugLogger.shared.log("File already in target format", level: .info, details: targetContainer)
             return
         }
         
@@ -1311,7 +1303,7 @@ class YTDLPService {
         // Generate output filename
         let outputPath = filePath.deletingPathExtension().appendingPathExtension(targetContainer)
         
-        DebugLogger.shared.log(
+        PersistentDebugLogger.shared.log(
             "Post-processing file", 
             level: .info, 
             details: "Converting to \(targetContainer): \(filePath.lastPathComponent)"
@@ -1368,7 +1360,7 @@ class YTDLPService {
             process.waitUntilExit()
             
             if process.terminationStatus == 0 {
-                DebugLogger.shared.log(
+                PersistentDebugLogger.shared.log(
                     "Post-processing completed", 
                     level: .success, 
                     details: "Output: \(outputPath.lastPathComponent)"
@@ -1383,9 +1375,9 @@ class YTDLPService {
                 if !preferences.keepOriginalAfterProcessing {
                     do {
                         try FileManager.default.removeItem(at: filePath)
-                        DebugLogger.shared.log("Original file removed", level: .info)
+                        PersistentDebugLogger.shared.log("Original file removed", level: .info)
                     } catch {
-                        DebugLogger.shared.log(
+                        PersistentDebugLogger.shared.log(
                             "Failed to remove original", 
                             level: .warning, 
                             details: error.localizedDescription
@@ -1396,7 +1388,7 @@ class YTDLPService {
                 let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
                 let errorOutput = String(data: errorData, encoding: .utf8) ?? "Unknown error"
                 
-                DebugLogger.shared.log(
+                PersistentDebugLogger.shared.log(
                     "Post-processing failed", 
                     level: .error, 
                     details: errorOutput
@@ -1408,7 +1400,7 @@ class YTDLPService {
                 }
             }
         } catch {
-            DebugLogger.shared.log(
+            PersistentDebugLogger.shared.log(
                 "Failed to start ffmpeg", 
                 level: .error, 
                 details: error.localizedDescription
@@ -1452,7 +1444,7 @@ class YTDLPService {
         
         let ffmpegPath = preferences.resolvedFfmpegPath
         guard FileManager.default.fileExists(atPath: ffmpegPath) else {
-            DebugLogger.shared.log("ffmpeg not found for audio extraction", level: .warning)
+            PersistentDebugLogger.shared.log("ffmpeg not found for audio extraction", level: .warning)
             return
         }
         
@@ -1508,7 +1500,7 @@ class YTDLPService {
             process.waitUntilExit()
             
             if process.terminationStatus == 0 {
-                DebugLogger.shared.log(
+                PersistentDebugLogger.shared.log(
                     "Audio extraction completed", 
                     level: .success, 
                     details: "Audio file: \(outputPath.lastPathComponent)"
@@ -1526,7 +1518,7 @@ class YTDLPService {
                 if !preferences.keepVideoAfterExtraction {
                     do {
                         try FileManager.default.removeItem(at: filePath)
-                        DebugLogger.shared.log("Video file removed after extraction", level: .info)
+                        PersistentDebugLogger.shared.log("Video file removed after extraction", level: .info)
                         
                         // Update the actual file path to point to the audio file
                         Task {
@@ -1535,7 +1527,7 @@ class YTDLPService {
                             }
                         }
                     } catch {
-                        DebugLogger.shared.log(
+                        PersistentDebugLogger.shared.log(
                             "Failed to remove video file", 
                             level: .warning, 
                             details: error.localizedDescription
@@ -1546,7 +1538,7 @@ class YTDLPService {
                 let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
                 let errorOutput = String(data: errorData, encoding: .utf8) ?? "Unknown error"
                 
-                DebugLogger.shared.log(
+                PersistentDebugLogger.shared.log(
                     "Audio extraction failed", 
                     level: .error, 
                     details: errorOutput
@@ -1559,7 +1551,7 @@ class YTDLPService {
                 }
             }
         } catch {
-            DebugLogger.shared.log(
+            PersistentDebugLogger.shared.log(
                 "Failed to start audio extraction", 
                 level: .error, 
                 details: error.localizedDescription
@@ -1614,7 +1606,7 @@ class YTDLPService {
     private func sanitizeFilePath(_ path: String) -> String {
         // Use InputValidator for proper validation
         guard let validatedPath = InputValidator.validatePath(path) else {
-            DebugLogger.shared.log("Invalid path rejected: \(path)", level: .warning)
+            PersistentDebugLogger.shared.log("Invalid path rejected: \(path)", level: .warning)
             return ""
         }
         return validatedPath
@@ -1624,7 +1616,7 @@ class YTDLPService {
     private func sanitizeURL(_ urlString: String) -> String {
         // Use InputValidator for proper URL validation
         guard let validatedURL = InputValidator.validateURL(urlString) else {
-            DebugLogger.shared.log("Invalid URL rejected: \(urlString)", level: .warning)
+            PersistentDebugLogger.shared.log("Invalid URL rejected: \(urlString)", level: .warning)
             return ""
         }
         return validatedURL
@@ -1662,9 +1654,9 @@ Do you want to continue downloading anyway?
         if response == .alertSecondButtonReturn {
             // User chose to cancel - we could implement cancellation logic here
             // For now, just log it
-            DebugLogger.shared.log("User cancelled due to missing ffmpeg", level: .info)
+            PersistentDebugLogger.shared.log("User cancelled due to missing ffmpeg", level: .info)
         } else {
-            DebugLogger.shared.log("User chose to continue without ffmpeg", level: .info)
+            PersistentDebugLogger.shared.log("User chose to continue without ffmpeg", level: .info)
         }
     }
 }

@@ -1,7 +1,7 @@
 import Foundation
 import SwiftUI
 
-// Enhanced DebugLogger with persistent storage
+// Debug logger with persistent storage
 class PersistentDebugLogger: ObservableObject {
     static let shared = PersistentDebugLogger()
     
@@ -115,16 +115,6 @@ class PersistentDebugLogger: ObservableObject {
             
             // Save to disk asynchronously
             self.saveLogs()
-            
-            // Also use the original DebugLogger for compatibility
-            let originalLevel: DebugLogger.DebugLog.LogLevel = switch level {
-            case .info: .info
-            case .warning: .warning
-            case .error: .error
-            case .success: .success
-            case .command: .command
-            }
-            DebugLogger.shared.log(message, level: originalLevel, details: details)
         }
     }
     

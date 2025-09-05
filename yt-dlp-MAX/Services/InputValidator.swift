@@ -40,7 +40,7 @@ class InputValidator {
         // Check for localhost/private IPs (optional security measure)
         if isPrivateHost(host) {
             // Log warning but allow (user might legitimately download from local server)
-            DebugLogger.shared.log("Warning: URL points to private/local host", level: .warning)
+            PersistentDebugLogger.shared.log("Warning: URL points to private/local host", level: .warning)
         }
         
         // Remove shell special characters that might cause issues
@@ -49,7 +49,7 @@ class InputValidator {
         
         // If the URL was split by special characters, it's suspicious
         if components.count > 1 {
-            DebugLogger.shared.log("URL contains shell special characters", level: .warning)
+            PersistentDebugLogger.shared.log("URL contains shell special characters", level: .warning)
             // Return the first component only (before any special char)
             return components.first
         }
@@ -175,7 +175,7 @@ class InputValidator {
         
         // Check for path traversal attempts
         if resolved.contains("../") || resolved.contains("..\\") {
-            DebugLogger.shared.log("Path traversal attempt detected", level: .warning)
+            PersistentDebugLogger.shared.log("Path traversal attempt detected", level: .warning)
             return nil
         }
         
@@ -198,7 +198,7 @@ class InputValidator {
         }
         
         if !isAllowed {
-            DebugLogger.shared.log("Path outside allowed directories: \(resolved)", level: .warning)
+            PersistentDebugLogger.shared.log("Path outside allowed directories: \(resolved)", level: .warning)
             // You might want to return nil here for stricter security
         }
         
@@ -215,7 +215,7 @@ class InputValidator {
         
         // Check if file exists
         guard FileManager.default.fileExists(atPath: validPath) else {
-            DebugLogger.shared.log("Cookie file does not exist: \(validPath)", level: .warning)
+            PersistentDebugLogger.shared.log("Cookie file does not exist: \(validPath)", level: .warning)
             return nil
         }
         
@@ -224,13 +224,13 @@ class InputValidator {
         FileManager.default.fileExists(atPath: validPath, isDirectory: &isDirectory)
         
         if isDirectory.boolValue {
-            DebugLogger.shared.log("Cookie path is a directory, not a file", level: .error)
+            PersistentDebugLogger.shared.log("Cookie path is a directory, not a file", level: .error)
             return nil
         }
         
         // Check file permissions (should be readable)
         guard FileManager.default.isReadableFile(atPath: validPath) else {
-            DebugLogger.shared.log("Cookie file is not readable", level: .error)
+            PersistentDebugLogger.shared.log("Cookie file is not readable", level: .error)
             return nil
         }
         
@@ -239,7 +239,7 @@ class InputValidator {
            let fileSize = attributes[.size] as? Int64 {
             let maxSize: Int64 = 10 * 1024 * 1024 // 10 MB limit
             if fileSize > maxSize {
-                DebugLogger.shared.log("Cookie file is suspiciously large: \(fileSize) bytes", level: .warning)
+                PersistentDebugLogger.shared.log("Cookie file is suspiciously large: \(fileSize) bytes", level: .warning)
                 // Still allow, but log warning
             }
         }
