@@ -35,6 +35,7 @@ struct VideoDetailsPanel: View {
                         // Thumbnail
                         if let thumbnail = item.thumbnail {
                             AsyncThumbnailView(url: thumbnail)
+                                .id(thumbnail) // Force view recreation when thumbnail URL changes
                                 .frame(height: 180)
                                 .cornerRadius(8)
                                 .padding(.horizontal)
@@ -209,6 +210,7 @@ struct VideoDetailsPanel: View {
                         // Thumbnail
                         if let thumbnail = historyItem.thumbnail {
                             AsyncThumbnailView(url: thumbnail)
+                                .id(thumbnail) // Force view recreation when thumbnail URL changes
                                 .frame(height: 180)
                                 .cornerRadius(8)
                                 .padding(.horizontal)
@@ -429,6 +431,11 @@ struct AsyncThumbnailView: View {
             }
         }
         .onAppear {
+            loadImage()
+        }
+        .onChange(of: url) { _, _ in
+            // Reset image and reload when URL changes
+            image = nil
             loadImage()
         }
     }

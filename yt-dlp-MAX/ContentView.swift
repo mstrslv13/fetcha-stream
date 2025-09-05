@@ -295,6 +295,7 @@ struct ContentView: View {
                 Divider()
                 
                 VideoDetailsPanel(item: selectedQueueItem, historyItem: selectedHistoryItem)
+                    .id("\(selectedQueueItem?.id.uuidString ?? "")-\(selectedHistoryItem?.videoId ?? "")") // Force refresh on selection change
                     .frame(width: 350)
                     // PERFORMANCE FIX: Simplified animation
                     .transition(.move(edge: .trailing))
