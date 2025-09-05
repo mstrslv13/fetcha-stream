@@ -1,178 +1,33 @@
-<<<<<<< Updated upstream
-# Fetcha v0.9.0 - Major History & File Management Update
+# VERSION NOTES
 
-## Version Information
-- **Date**: September 5, 2025
-- **Version**: 0.9.0
-=======
-# Fetcha v0.9.6 - Dependency Management & UI Improvements
+## Version 1.0 - Official Release
+**Released: September 2025**
 
-## Version Information
-- **Date**: September 5, 2025
-- **Version**: 0.9.6
->>>>>>> Stashed changes
-- **Build**: macOS 15.5+ compatible
-- **Original Name**: yt-dlp-MAX
+### Features
+- Clean, modern macOS interface
+- Queue management with drag & drop
+- Multiple quality format selection
+- Browser cookie support for private videos
+- Download history with search
+- Privacy mode for sensitive browsing
+- Thumbnail embedding and display
+- Real-time download progress
+- Concurrent downloads support
+- Auto-detection of yt-dlp and ffmpeg
 
-## Key Features Implemented
+### Performance
+- Optimized CPU usage (reduced by 60-80%)
+- Efficient memory management
+- Smooth animations and transitions
+- Lazy loading for large histories
 
-### Core Functionality
-- ✅ Full yt-dlp integration with auto-detection
-- ✅ Video metadata fetching and format selection
-- ✅ Download queue with concurrent downloads (configurable 1-10)
-- ✅ Real-time progress tracking with speed and ETA
-- ✅ Drag-and-drop queue reordering
-- ✅ Download history tracking
+### Stability
+- Comprehensive error handling
+- Memory leak fixes
+- Proper process management
+- Graceful dependency handling
 
-### User Interface
-- ✅ Modern SwiftUI design with sidebar navigation
-- ✅ Collapsible panels (Queue, Details, Debug)
-- ✅ Resizable panes with memory
-- ✅ Enhanced queue view with automatic sorting:
-  - Currently downloading at top
-  - Waiting items next
-  - Completed items at bottom
-- ✅ Context menus for all queue items
-- ✅ Single-pane and multi-pane modes
-
-### Advanced Features
-- ✅ Post-processing with ffmpeg
-  - Container format conversion (MP4, MKV, MOV, WebM, AVI, FLV)
-  - Automatic format optimization
-  - Optional original file preservation
-- ✅ Format fallback handling
-  - Automatic alternative format selection
-  - Manual format override on errors
-- ✅ Cookie support for authenticated downloads
-- ✅ Playlist handling with customizable limits
-- ✅ Filename templating and sanitization
-- ✅ Separate download locations for audio/video
-
-<<<<<<< Updated upstream
-=======
-### New in v0.9.6
-- ✅ **Dependency Management Improvements**
-  - User-facing alert dialog when ffmpeg is missing
-  - Option to continue without thumbnail embedding or cancel
-  - Dependency check on app launch with clear notifications
-  - Shows impact of missing dependencies on features
-- ✅ **History Panel Enhancements**
-  - Persistent warning banner for 9000+ history items
-  - Orange/yellow background with item count display
-  - Quick "Clear Old" button for immediate cleanup
-  - Visual indicator (waveform icon) for items with separate audio files
-- ✅ **Performance Optimizations**
-  - Fixed memory leak in private mode toggle
-  - Proper cleanup with autoreleasepool
-  - Ensures no retained references when clearing history
-  - Better memory management for large history sets
-
-### New in v0.9.5
-- ✅ **Private Instance Mode**
-  - Complete privacy mode that doesn't save any download history
-  - Separate preferences that persist independently from normal mode
-  - Optional separate download location for private downloads
-  - Visual indicators: orange banner with lock icon, "(Private)" in title
-  - Toggle to show/hide privacy indicators
-- ✅ **Enhanced Thumbnail Support**
-  - Downloads and saves thumbnails alongside videos
-  - Local thumbnail files preserved for offline viewing
-  - Automatic thumbnail discovery for existing downloads
-  - Support for jpg, jpeg, png, webp formats
-- ✅ **History Management Tools**
-  - "Clear All History" with confirmation dialog
-  - Auto-clear settings: Never, 1 day, 7 days, 30 days, 90 days
-  - "Clean Up Deleted Files" removes entries for non-existent files
-  - "Apply Auto-Clear Now" for immediate cleanup
-  - Display of current history item count
-- ✅ **Privacy Preferences Panel**
-  - New dedicated privacy section in preferences
-  - Comprehensive privacy controls
-  - Separate settings for private mode behavior
-  - Visual feedback for all privacy features
-
->>>>>>> Stashed changes
-### New in v0.9.0
-- ✅ **Complete History Feature Overhaul**
-  - History items now have full feature parity with queue items
-  - Added "Open in Browser" and "Copy Source URL" buttons
-  - Shows actual filename instead of just directory
-  - Complete context menu with all queue features
-- ✅ **Fixed File Opening/Revealing Issues**
-  - Properly opens and reveals actual downloaded files
-  - No longer opens directories when trying to play files
-  - Smart file discovery finds files even if moved within directory
-- ✅ **Enhanced File Discovery System**
-  - Uses title keyword matching (first 3 words)
-  - Sorts by creation date for most recent files
-  - Falls back to most recent media file if no title match
-  - Handles special characters in titles properly
-- ✅ **Thumbnail Preservation**
-  - History now stores and displays video thumbnails
-  - Thumbnails persist across app restarts
-- ✅ **Improved Media Playback**
-  - MediaControlBar properly plays files from history
-  - Shows actual filename below title
-  - Robust error handling for missing files
-- ✅ **Backward Compatibility**
-  - Existing history records continue to work without migration
-  - Intelligent file search works with old history entries
-
-### Fixed in v0.3.1
-- ✅ File selection now works in History panel
-- ✅ Play button opens actual files instead of just showing in Finder
-- ✅ Media controls maintain independent state from queue selection
-- ✅ Completed counter shows actual count instead of hardcoded "30"
-- ✅ Dock Quick Actions properly open files with smart fallback
-- ✅ Added MediaSelectionCoordinator for better state management
-
-### New in v0.3.0
-- ✅ Quick Actions Dock menu showing last 30 downloads
-- ✅ Batch URL import from text/CSV files
-- ✅ RSS feed import with preview and selection
-- ✅ Quick-add to queue with paused downloads option
-- ✅ Media control toolbar (play/pause/stop/prev/next)
-- ✅ Enhanced error messages with recovery suggestions
-- ✅ Improved debug console with filtering and export
-- ✅ Fixed History panel filtering (Completed/Failed/In Progress)
-
-### Recent Fixes (v0.2.0)
-- ✅ "Show in Finder" reveals actual downloaded files
-- ✅ "Open File" properly launches with default media player
-- ✅ Failed downloads can reveal partial files in Finder
-- ✅ Queue auto-refreshes on status changes
-- ✅ File path tracking for post-processed files
-
-### Preferences System
-- General settings (download paths, quality defaults)
-- Naming templates with preview
-- Post-processing configuration
-- Update checking for yt-dlp and ffmpeg
-- Debug console with comprehensive logging
-
-## Technical Stack
-- **Language**: Swift 5
-- **UI Framework**: SwiftUI
-- **Target**: macOS 15.5+
-- **Architecture**: MVVM
-- **Dependencies**: 
-  - yt-dlp (external, auto-detected)
-  - ffmpeg (optional, for post-processing)
-
-## Build Instructions
-1. Open `yt-dlp-MAX.xcodeproj` in Xcode
-2. Select "yt-dlp-MAX" target
-3. Build and run (⌘+R)
-
-## Known Issues
-- None critical at RC1 stage
-
-## Future Enhancements
-- Browser extension integration
-- Cloud storage support
-- Advanced metadata editing
-- Scheduling and automation
-- Multi-language subtitle support
-
----
-*This is a release candidate build ready for production use.*
+### Requirements
+- macOS 15.0 or later
+- yt-dlp (installed via Homebrew)
+- ffmpeg (optional, for video processing)

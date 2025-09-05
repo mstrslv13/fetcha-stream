@@ -15,7 +15,7 @@ struct AboutWindow: View {
                 .font(.system(size: 36))
                 .fontWeight(.bold)
             
-            Text("Version 0.9.6")
+            Text("Version 1.0")
                 .font(.system(size: 14))
                 .foregroundColor(.secondary)
             

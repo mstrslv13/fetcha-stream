@@ -952,8 +952,7 @@ struct AboutView: View {
                 .font(.system(size: 38))
                 .fontWeight(.bold)
             
-            Text("Version 0.9.0")
-            Text("Version 0.9.6")
+            Text("Version 1.0")
                 .font(.system(size: 16))
                 .foregroundColor(.secondary)
             
