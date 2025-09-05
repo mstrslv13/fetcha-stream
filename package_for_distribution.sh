@@ -17,7 +17,11 @@ fi
 # Create distribution directory
 DIST_DIR="dist"
 APP_NAME="fetcha.stream"
+<<<<<<< Updated upstream
 VERSION="0.9.0"
+=======
+VERSION="0.9.6"
+>>>>>>> Stashed changes
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 OUTPUT_NAME="${APP_NAME}_v${VERSION}_${TIMESTAMP}"
 

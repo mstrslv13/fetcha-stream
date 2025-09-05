@@ -952,7 +952,11 @@ struct AboutView: View {
                 .font(.system(size: 38))
                 .fontWeight(.bold)
             
+<<<<<<< Updated upstream
             Text("Version 0.9.0")
+=======
+            Text("Version 0.9.6")
+>>>>>>> Stashed changes
                 .font(.system(size: 16))
                 .foregroundColor(.secondary)
             

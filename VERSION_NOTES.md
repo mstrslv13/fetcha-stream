@@ -1,8 +1,16 @@
+<<<<<<< Updated upstream
 # Fetcha v0.9.0 - Major History & File Management Update
 
 ## Version Information
 - **Date**: September 5, 2025
 - **Version**: 0.9.0
+=======
+# Fetcha v0.9.6 - Dependency Management & UI Improvements
+
+## Version Information
+- **Date**: September 5, 2025
+- **Version**: 0.9.6
+>>>>>>> Stashed changes
 - **Build**: macOS 15.5+ compatible
 - **Original Name**: yt-dlp-MAX
 
@@ -40,6 +48,50 @@
 - ✅ Filename templating and sanitization
 - ✅ Separate download locations for audio/video
 
+<<<<<<< Updated upstream
+=======
+### New in v0.9.6
+- ✅ **Dependency Management Improvements**
+  - User-facing alert dialog when ffmpeg is missing
+  - Option to continue without thumbnail embedding or cancel
+  - Dependency check on app launch with clear notifications
+  - Shows impact of missing dependencies on features
+- ✅ **History Panel Enhancements**
+  - Persistent warning banner for 9000+ history items
+  - Orange/yellow background with item count display
+  - Quick "Clear Old" button for immediate cleanup
+  - Visual indicator (waveform icon) for items with separate audio files
+- ✅ **Performance Optimizations**
+  - Fixed memory leak in private mode toggle
+  - Proper cleanup with autoreleasepool
+  - Ensures no retained references when clearing history
+  - Better memory management for large history sets
+
+### New in v0.9.5
+- ✅ **Private Instance Mode**
+  - Complete privacy mode that doesn't save any download history
+  - Separate preferences that persist independently from normal mode
+  - Optional separate download location for private downloads
+  - Visual indicators: orange banner with lock icon, "(Private)" in title
+  - Toggle to show/hide privacy indicators
+- ✅ **Enhanced Thumbnail Support**
+  - Downloads and saves thumbnails alongside videos
+  - Local thumbnail files preserved for offline viewing
+  - Automatic thumbnail discovery for existing downloads
+  - Support for jpg, jpeg, png, webp formats
+- ✅ **History Management Tools**
+  - "Clear All History" with confirmation dialog
+  - Auto-clear settings: Never, 1 day, 7 days, 30 days, 90 days
+  - "Clean Up Deleted Files" removes entries for non-existent files
+  - "Apply Auto-Clear Now" for immediate cleanup
+  - Display of current history item count
+- ✅ **Privacy Preferences Panel**
+  - New dedicated privacy section in preferences
+  - Comprehensive privacy controls
+  - Separate settings for private mode behavior
+  - Visual feedback for all privacy features
+
+>>>>>>> Stashed changes
 ### New in v0.9.0
 - ✅ **Complete History Feature Overhaul**
   - History items now have full feature parity with queue items

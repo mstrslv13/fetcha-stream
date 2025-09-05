@@ -140,59 +140,23 @@ struct VideoDetailsPanel: View {
                         // Actions
                         HStack(spacing: 12) {
                             if item.status == .completed {
-                                // Try actualFilePath first, then fallback to finding the file
-                                let filePath: URL? = {
-                                    if let actualPath = item.actualFilePath {
-                                        return actualPath
-                                    }
-                                    // Fallback: try to find a file with the video title in the download location
-                                    let location = item.downloadLocation
-                                    if let contents = try? FileManager.default.contentsOfDirectory(at: location, includingPropertiesForKeys: [.creationDateKey], options: .skipsHiddenFiles) {
-                                        // Clean the title for better matching
-                                        let cleanTitle = item.title
-                                            .replacingOccurrences(of: "[", with: "")
-                                            .replacingOccurrences(of: "]", with: "")
-                                            .replacingOccurrences(of: "(", with: "")
-                                            .replacingOccurrences(of: ")", with: "")
-                                            .replacingOccurrences(of: "#", with: "")
-                                        
-                                        let titleWords = cleanTitle.split(separator: " ").prefix(3).map(String.init)
-                                        
-                                        // Sort by creation date and find the most recent matching file
-                                        let sortedFiles = contents.filter { !$0.hasDirectoryPath }.sorted { url1, url2 in
-                                            let date1 = (try? url1.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? Date.distantPast
-                                            let date2 = (try? url2.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? Date.distantPast
-                                            return date1 > date2
-                                        }
-                                        
-                                        // Look for a file containing title words
-                                        return sortedFiles.first { url in
-                                            let filename = url.lastPathComponent.lowercased()
-                                            let ext = url.pathExtension.lowercased()
-                                            return ["mp4", "webm", "mkv", "avi", "mov", "flv", "mp3", "m4a", "opus", "wav", "aac"].contains(ext) &&
-                                                   titleWords.contains { word in filename.contains(word.lowercased()) }
-                                        } ?? sortedFiles.first { url in
-                                            // Fallback to most recent media file
-                                            let ext = url.pathExtension.lowercased()
-                                            return ["mp4", "webm", "mkv", "avi", "mov", "flv", "mp3", "m4a", "opus", "wav", "aac"].contains(ext)
-                                        }
-                                    }
-                                    return nil
-                                }()
+                                // PERFORMANCE FIX: Use cached file path or simple check
+                                let filePath: URL? = item.actualFilePath ?? item.downloadLocation
                                 
                                 if let path = filePath {
                                     Button(action: {
-                                        let isFile = !path.hasDirectoryPath && FileManager.default.fileExists(atPath: path.path)
-                                        DebugLogger.shared.log(
-                                            "Show in Finder clicked",
-                                            level: .info,
-                                            details: "Path: \(path.path), isFile: \(isFile), hasDirectoryPath: \(path.hasDirectoryPath)"
-                                        )
-                                        if isFile {
-                                            NSWorkspace.shared.activateFileViewerSelecting([path])
-                                        } else {
-                                            // Fallback to parent directory
-                                            NSWorkspace.shared.open(path.deletingLastPathComponent())
+                                        // PERFORMANCE FIX: Simple async file check
+                                        Task {
+                                            if let actualPath = item.actualFilePath,
+                                               FileManager.default.fileExists(atPath: actualPath.path) {
+                                                await MainActor.run {
+                                                    NSWorkspace.shared.activateFileViewerSelecting([actualPath])
+                                                }
+                                            } else {
+                                                await MainActor.run {
+                                                    NSWorkspace.shared.open(path)
+                                                }
+                                            }
                                         }
                                     }) {
                                         Label("Show in Finder", systemImage: "folder")
@@ -201,21 +165,11 @@ struct VideoDetailsPanel: View {
                                     .controlSize(.small)
                                     
                                     Button(action: {
-                                        let isFile = !path.hasDirectoryPath && FileManager.default.fileExists(atPath: path.path)
-                                        DebugLogger.shared.log(
-                                            "Open file clicked",
-                                            level: .info,
-                                            details: "Path: \(path.path), isFile: \(isFile), hasDirectoryPath: \(path.hasDirectoryPath)"
-                                        )
-                                        if isFile {
-                                            NSWorkspace.shared.open(path)
+                                        // PERFORMANCE FIX: Simple open without complex file checking
+                                        if let actualPath = item.actualFilePath {
+                                            NSWorkspace.shared.open(actualPath)
                                         } else {
-                                            // Try to find the file in the directory
-                                            if let contents = try? FileManager.default.contentsOfDirectory(at: path.hasDirectoryPath ? path : path.deletingLastPathComponent(), includingPropertiesForKeys: nil) {
-                                                if let videoFile = contents.first(where: { !$0.hasDirectoryPath && $0.pathExtension.lowercased() != "part" }) {
-                                                    NSWorkspace.shared.open(videoFile)
-                                                }
-                                            }
+                                            NSWorkspace.shared.open(path)
                                         }
                                     }) {
                                         Label("Open", systemImage: "play.circle")

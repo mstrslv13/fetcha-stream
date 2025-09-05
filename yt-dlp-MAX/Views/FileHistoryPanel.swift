@@ -12,6 +12,43 @@ struct FileHistoryPanel: View {
     
     var body: some View {
         VStack(spacing: 0) {
+            // Warning banner for large history (9000+ items)
+            if downloadHistory.history.count >= 9000 {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(.orange)
+                    
+                    Text("History contains \(downloadHistory.history.count) items")
+                        .font(.system(size: 11, weight: .medium))
+                    
+                    Text("Performance may be affected")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        // Clear old history items
+                        downloadHistory.clearOldRecords(olderThanDays: 30)
+                    }) {
+                        Text("Clear Old")
+                            .font(.system(size: 10))
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundColor(.orange)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.orange.opacity(0.15))
+                .overlay(
+                    Rectangle()
+                        .fill(Color.orange.opacity(0.3))
+                        .frame(height: 1),
+                    alignment: .bottom
+                )
+            }
+            
             // Header with tabs
             HStack(spacing: 20) {
                 Button(action: { selectedTab = "history" }) {
@@ -76,25 +113,32 @@ struct FileHistoryList: View {
     @Binding var selectedItem: DownloadHistory.DownloadRecord?
     @StateObject private var downloadHistory = DownloadHistory.shared
     
+    // PERFORMANCE FIX: Cache filtered results and only recalculate when inputs change
+    @State private var cachedFilteredHistory: [DownloadHistory.DownloadRecord] = []
+    @State private var lastSearchText = ""
+    @State private var lastFilterType = "All"
+    @State private var lastHistoryCount = 0
+    
     var filteredHistory: [DownloadHistory.DownloadRecord] {
-        var items = Array(downloadHistory.history)
+        // Only recalculate if inputs have changed
+        if searchText == lastSearchText && 
+           filterType == lastFilterType && 
+           downloadHistory.history.count == lastHistoryCount {
+            return cachedFilteredHistory
+        }
+        
+        // Limit to most recent 1000 items for performance
+        var items = Array(downloadHistory.history.prefix(1000))
         
         // Apply filter type
-        // Note: Since DownloadHistory only stores completed downloads,
-        // we can only filter between "All" and "Completed"
-        // "Failed" and "In Progress" will show empty for now
         switch filterType {
         case "Completed":
-            // All items in history are completed downloads
             break
         case "Failed":
-            // History doesn't store failed downloads currently
             items = []
         case "In Progress":
-            // History doesn't store in-progress downloads
             items = []
-        default: // "All"
-            // Show all completed downloads
+        default:
             break
         }
         
@@ -106,14 +150,25 @@ struct FileHistoryList: View {
             }
         }
         
-        // Sort by timestamp
-        return items.sorted { $0.timestamp > $1.timestamp }
+        // Sort by timestamp (already sorted in history, so only sort filtered results)
+        let sorted = items.sorted { $0.timestamp > $1.timestamp }
+        
+        // Update cache
+        DispatchQueue.main.async {
+            self.cachedFilteredHistory = sorted
+            self.lastSearchText = searchText
+            self.lastFilterType = filterType
+            self.lastHistoryCount = downloadHistory.history.count
+        }
+        
+        return sorted
     }
     
     var body: some View {
         ScrollView {
-            VStack(spacing: 0) {
-                ForEach(filteredHistory, id: \.videoId) { item in
+            // PERFORMANCE FIX: Use LazyVStack for efficient rendering of large lists
+            LazyVStack(spacing: 0, pinnedViews: []) {
+                ForEach(filteredHistory.prefix(500), id: \.videoId) { item in
                     FileHistoryRow(
                         item: item,
                         isSelected: selectedItem?.videoId == item.videoId,
@@ -129,6 +184,18 @@ struct FileHistoryList: View {
                     )
                     Divider()
                         .padding(.leading, 12)
+                }
+                
+                // Show a message if list is truncated
+                if filteredHistory.count > 500 {
+                    HStack {
+                        Spacer()
+                        Text("Showing first 500 of \(filteredHistory.count) items")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .padding()
+                        Spacer()
+                    }
                 }
             }
         }
@@ -148,6 +215,24 @@ struct FileHistoryRow: View {
         return .green
     }
     
+    // Check if there's a separate audio file for this download
+    var hasAudioFile: Bool {
+        if let actualPath = item.actualFilePath {
+            let fileURL = URL(fileURLWithPath: actualPath)
+            let basePath = fileURL.deletingPathExtension()
+            let audioExtensions = ["mp3", "m4a", "opus", "ogg", "wav", "aac", "flac"]
+            
+            // Check if any audio file with the same base name exists
+            for ext in audioExtensions {
+                let audioPath = basePath.appendingPathExtension(ext)
+                if FileManager.default.fileExists(atPath: audioPath.path) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+    
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: statusIcon)
@@ -155,9 +240,19 @@ struct FileHistoryRow: View {
                 .font(.system(size: 10))
             
             VStack(alignment: .leading, spacing: 2) {
-                Text(item.title)
-                    .font(.system(size: 11))
-                    .lineLimit(1)
+                HStack(spacing: 4) {
+                    Text(item.title)
+                        .font(.system(size: 11))
+                        .lineLimit(1)
+                    
+                    // Show audio indicator if separate audio file exists
+                    if hasAudioFile {
+                        Image(systemName: "waveform.circle.fill")
+                            .font(.system(size: 10))
+                            .foregroundColor(.blue)
+                            .help("Separate audio file available")
+                    }
+                }
                 
                 HStack(spacing: 4) {
                     Text(formatDate(item.timestamp))

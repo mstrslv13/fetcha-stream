@@ -102,8 +102,9 @@ class DownloadQueue: ObservableObject {
             downloadLocation: itemDownloadLocation
         )
         
-        // Subscribe to item changes to trigger queue updates with weak references
+        // PERFORMANCE FIX: Throttle item updates to prevent UI thrashing
         let cancellable = item.objectWillChange
+            .throttle(for: .milliseconds(100), scheduler: DispatchQueue.main, latest: true)
             .sink { [weak self, weak item] _ in
                 guard let self = self, item != nil else { return }
                 self.objectWillChange.send()
@@ -300,17 +301,24 @@ class DownloadQueue: ObservableObject {
         // Create a separate cancellable set for this download
         var downloadCancellables = Set<AnyCancellable>()
         
-        // Subscribe to progress updates with weak references
+        // PERFORMANCE FIX: Throttle progress updates to reduce UI updates
         downloadTask.$progress
+            .throttle(for: .milliseconds(250), scheduler: DispatchQueue.main, latest: true)
             .receive(on: DispatchQueue.main)
             .sink { [weak self, weak item] progress in
                 guard let self = self, let item = item,
                       let idx = self.items.firstIndex(where: { $0.id == item.id }) else { return }
-                self.items[idx].progress = progress
+                // Only update if change is significant (>1%)
+                let currentProgress = self.items[idx].progress
+                if abs(progress - currentProgress) > 1.0 {
+                    self.items[idx].progress = progress
+                }
             }
             .store(in: &downloadCancellables)
         
+        // PERFORMANCE FIX: Batch updates and throttle status/speed/eta updates
         downloadTask.$status
+            .throttle(for: .milliseconds(500), scheduler: DispatchQueue.main, latest: true)
             .receive(on: DispatchQueue.main)
             .sink { [weak self, weak item] status in
                 guard let self = self, let item = item,
@@ -320,6 +328,7 @@ class DownloadQueue: ObservableObject {
             .store(in: &downloadCancellables)
         
         downloadTask.$speed
+            .throttle(for: .milliseconds(1000), scheduler: DispatchQueue.main, latest: true)
             .receive(on: DispatchQueue.main)
             .sink { [weak self, weak item] speed in
                 guard let self = self, let item = item,
@@ -329,6 +338,7 @@ class DownloadQueue: ObservableObject {
             .store(in: &downloadCancellables)
         
         downloadTask.$eta
+            .throttle(for: .milliseconds(1000), scheduler: DispatchQueue.main, latest: true)
             .receive(on: DispatchQueue.main)
             .sink { [weak self, weak item] eta in
                 guard let self = self, let item = item,

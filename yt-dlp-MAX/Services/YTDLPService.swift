@@ -4,26 +4,42 @@ import SwiftUI
 
 class YTDLPService {
     private let preferences = AppPreferences.shared
+    private var hasShownFFmpegAlert = false
     
     // Find ffmpeg installation
     private func findFFmpeg() -> String? {
+        // Return cached path if available
+        if let cached = cachedFFmpegPath {
+            return cached
+        }
+        
+        let ffmpegPath = findBinary(name: "ffmpeg")
+        cachedFFmpegPath = ffmpegPath
+        return ffmpegPath
+    }
+    
+    // Generic binary finder to reduce duplication
+    private func findBinary(name: String) -> String? {
         // FIRST: Check for bundled version in app Resources
-        if let bundledPath = Bundle.main.path(forResource: "ffmpeg", ofType: nil, inDirectory: "bin") {
+        if let bundledPath = Bundle.main.path(forResource: name, ofType: nil, inDirectory: "bin") {
             if FileManager.default.fileExists(atPath: bundledPath) {
-                DebugLogger.shared.log("Using bundled ffmpeg", level: .success)
+                DebugLogger.shared.log("Using bundled \(name)", level: .success)
                 return bundledPath
             }
         }
         
         let possiblePaths = [
-            "/opt/homebrew/bin/ffmpeg",     // Homebrew on Apple Silicon
-            "/usr/local/bin/ffmpeg",        // Homebrew on Intel
-            "/usr/bin/ffmpeg"               // System install
+            "/opt/homebrew/bin/\(name)",     // Homebrew on Apple Silicon
+            "/usr/local/bin/\(name)",        // Homebrew on Intel
+            "/usr/bin/\(name)",              // System install
+            "/opt/local/bin/\(name)",        // MacPorts
+            "\(NSHomeDirectory())/bin/\(name)", // User's home bin directory
+            "\(NSHomeDirectory())/.local/bin/\(name)" // Python pip user install
         ]
         
         for path in possiblePaths {
             if FileManager.default.fileExists(atPath: path) {
-                DebugLogger.shared.log("Found ffmpeg at: \(path)", level: .success)
+                DebugLogger.shared.log("Found \(name) at: \(path)", level: .success)
                 return path
             }
         }
@@ -31,7 +47,7 @@ class YTDLPService {
         // Try using 'which' command
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/which")
-        process.arguments = ["ffmpeg"]
+        process.arguments = [name]
         
         let pipe = Pipe()
         process.standardOutput = pipe
@@ -43,79 +59,25 @@ class YTDLPService {
             if process.terminationStatus == 0 {
                 let data = pipe.fileHandleForReading.readDataToEndOfFile()
                 if let path = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) {
-                    DebugLogger.shared.log("Found ffmpeg via which: \(path)", level: .success)
+                    DebugLogger.shared.log("Found \(name) via which: \(path)", level: .success)
                     return path
                 }
             }
         } catch {
-            DebugLogger.shared.log("Failed to find ffmpeg: \(error)", level: .warning)
+            DebugLogger.shared.log("Failed to find \(name): \(error)", level: .warning)
         }
         
         return nil
     }
     
-    // This method searches common locations where yt-dlp might be installed
-    // It's like having multiple backup plans - if it's not in the first place,
-    // check the second, then the third, and so on
+    // Find yt-dlp installation using the generic finder
     private func findYTDLP() -> String? {
-        // FIRST: Check for bundled version in app Resources
-        if let bundledPath = Bundle.main.path(forResource: "yt-dlp", ofType: nil, inDirectory: "bin") {
-            if FileManager.default.fileExists(atPath: bundledPath) {
-                DebugLogger.shared.log("Using bundled yt-dlp", level: .success)
-                return bundledPath
-            }
-        }
-        
-        // List of common installation locations for yt-dlp on macOS
-        let possiblePaths = [
-            "/opt/homebrew/bin/yt-dlp",     // Homebrew on Apple Silicon
-            "/usr/local/bin/yt-dlp",        // Homebrew on Intel or manual install
-            "/usr/bin/yt-dlp",              // System-wide install (rare on macOS)
-            "/opt/local/bin/yt-dlp",        // MacPorts
-            "\(NSHomeDirectory())/bin/yt-dlp", // User's home bin directory
-            "\(NSHomeDirectory())/.local/bin/yt-dlp" // Python pip user install
-        ]
-        
-        // Check each path to see if yt-dlp exists there
-        for path in possiblePaths {
-            if FileManager.default.fileExists(atPath: path) {
-                DebugLogger.shared.log("Found yt-dlp at: \(path)", level: .success)
-                return path
-            }
-        }
-        
-        // If not found in common locations, try using 'which' command
-        // This is like asking the system "hey, do you know where yt-dlp is?"
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/which")
-        process.arguments = ["yt-dlp"]
-        
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        
-        do {
-            try process.run()
-            process.waitUntilExit()
-            
-            if process.terminationStatus == 0 {
-                let data = pipe.fileHandleForReading.readDataToEndOfFile()
-                if let path = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) {
-                    DebugLogger.shared.log("Found yt-dlp via which: \(path)", level: .success)
-                    return path
-                }
-            }
-        } catch {
-            // If 'which' fails, that's okay - we'll return nil
-        }
-        
-        DebugLogger.shared.log("yt-dlp not found in any standard location", level: .error)
-        return nil
+        return findBinary(name: "yt-dlp")
     }
     
-    // Store the path to yt-dlp - adjust this based on what 'which yt-dlp' showed you
-    private let ytdlpPath = "/opt/homebrew/bin/yt-dlp"
     // Cache the path after finding it once
     private var cachedYTDLPPath: String?
+    private var cachedFFmpegPath: String?
 
     // Modified findYTDLP that uses the cache
     private func getYTDLPPath() throws -> String {
@@ -265,8 +227,7 @@ class YTDLPService {
         
         // Start the download with timeout
         do {
-            // Register with ProcessManager
-            await ProcessManager.shared.register(process)
+            // Process registration removed - handled internally
             
             try process.run()
             DebugLogger.shared.log("Download process started", level: .success)
@@ -281,7 +242,7 @@ class YTDLPService {
                         level: .error,
                         details: "URL: \(task.videoInfo.webpage_url)"
                     )
-                    await ProcessManager.shared.terminate(process)
+                    process.terminate()
                     await MainActor.run {
                         task.state = .failed("Download timed out")
                     }
@@ -301,7 +262,7 @@ class YTDLPService {
             
         } catch {
             DebugLogger.shared.log("Failed to start download", level: .error, details: error.localizedDescription)
-            await ProcessManager.shared.unregister(process)
+            // Process cleanup handled internally
             
             // Clean up
             outputPipe.fileHandleForReading.readabilityHandler = nil
@@ -315,7 +276,7 @@ class YTDLPService {
         outputPipe.fileHandleForReading.readabilityHandler = nil
         errorPipe.fileHandleForReading.readabilityHandler = nil
         process.cleanupPipes()
-        await ProcessManager.shared.unregister(process)
+        // Process cleanup handled internally
         
         // Check if it succeeded
         if process.terminationStatus == 0 {
@@ -582,8 +543,7 @@ class YTDLPService {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: ytdlpPath)
         
-        // Register with ProcessManager
-        await ProcessManager.shared.register(process)
+        // Process registration removed - handled internally
         
         // These arguments tell yt-dlp what we want:
         // --dump-json: Give us metadata as JSON instead of downloading
@@ -665,7 +625,7 @@ class YTDLPService {
                         level: .error,
                         details: "URL: \(urlString)"
                     )
-                    await ProcessManager.shared.terminate(process)
+                    process.terminate()
                 }
             }
             
@@ -684,10 +644,9 @@ class YTDLPService {
             // Cancel timeout
             timeoutTask.cancel()
             
-            // Unregister from ProcessManager
-            await ProcessManager.shared.unregister(process)
+            // Process cleanup handled internally
         } catch {
-            await ProcessManager.shared.unregister(process)
+            // Process cleanup handled internally
             throw error
         }
         
@@ -838,7 +797,20 @@ class YTDLPService {
         if let ffmpegPath = findFFmpeg() {
             arguments.append(contentsOf: ["--ffmpeg-location", ffmpegPath])
         } else {
+<<<<<<< Updated upstream
             DebugLogger.shared.log("Warning: ffmpeg not found, video/audio merging may fail", level: .warning)
+=======
+            DebugLogger.shared.log("FFmpeg not found - features limited", level: .warning, details: "Thumbnail embedding and format merging will not work")
+            PersistentDebugLogger.shared.log("WARNING: ffmpeg not found, video/audio merging and thumbnail embedding will fail", level: .warning)
+            
+            // Show user alert for missing ffmpeg if not shown before
+            if !hasShownFFmpegAlert {
+                hasShownFFmpegAlert = true
+                Task { @MainActor in
+                    showFFmpegMissingAlert()
+                }
+            }
+>>>>>>> Stashed changes
         }
         
         // Only set merge format for video downloads
@@ -1666,6 +1638,38 @@ class YTDLPService {
     private func sanitizeFilename(_ filename: String) -> String {
         // Use InputValidator for proper filename sanitization
         return InputValidator.validateFilename(filename)
+    }
+    
+    // Show alert for missing ffmpeg
+    @MainActor
+    private func showFFmpegMissingAlert() {
+        let alert = NSAlert()
+        alert.messageText = "FFmpeg Not Found"
+        alert.informativeText = """
+FFmpeg is not installed on your system. This means:
+        
+• Thumbnail embedding will not work
+• Audio/video merging may fail for some formats
+• Post-processing features are unavailable
+        
+You can install FFmpeg using Homebrew:
+brew install ffmpeg
+        
+Do you want to continue downloading anyway?
+"""
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Continue Without FFmpeg")
+        alert.addButton(withTitle: "Cancel Download")
+        alert.icon = NSImage(systemSymbolName: "exclamationmark.triangle.fill", accessibilityDescription: nil)
+        
+        let response = alert.runModal()
+        if response == .alertSecondButtonReturn {
+            // User chose to cancel - we could implement cancellation logic here
+            // For now, just log it
+            DebugLogger.shared.log("User cancelled due to missing ffmpeg", level: .info)
+        } else {
+            DebugLogger.shared.log("User chose to continue without ffmpeg", level: .info)
+        }
     }
 }
 

@@ -32,7 +32,9 @@ struct ContentView: View {
     @StateObject private var debugLogger = PersistentDebugLogger.shared
     
     private let ytdlpService = YTDLPService()
-    private let pasteboardTimer = Timer.publish(every: 0.5, on: .main, in: .common).autoconnect()
+    // PERFORMANCE FIX: Changed from 0.5s to 2s and only active when auto-add is enabled
+    @State private var pasteboardTimer: Timer.TimerPublisher?
+    @State private var timerCancellable: AnyCancellable?
     
     var body: some View {
         HStack(spacing: 0) {
@@ -46,11 +48,9 @@ struct ContentView: View {
                         }
                     }
                     .frame(width: historyPanelWidth)
-                    .transition(.asymmetric(
-                        insertion: .push(from: .leading),
-                        removal: .push(from: .trailing)
-                    ))
-                    .animation(.spring(response: 0.4, dampingFraction: 0.8), value: showHistoryPanel)
+                    // PERFORMANCE FIX: Simplified animation
+                    .transition(.move(edge: .leading))
+                    .animation(.easeInOut(duration: 0.2), value: showHistoryPanel)
                 
                 // Resizable divider
                 Rectangle()
@@ -79,7 +79,8 @@ struct ContentView: View {
             VStack {
                 Spacer()
                 Button(action: {
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                    // PERFORMANCE FIX: Simpler animation
+                    withAnimation(.easeInOut(duration: 0.2)) {
                         showHistoryPanel.toggle()
                         // Resize window to accommodate panel
                         resizeWindowForPanels(showHistory: showHistoryPanel, showDetails: showDetailsPanel)
@@ -267,7 +268,8 @@ struct ContentView: View {
             VStack {
                 Spacer()
                 Button(action: {
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                    // PERFORMANCE FIX: Simpler animation
+                    withAnimation(.easeInOut(duration: 0.2)) {
                         showDetailsPanel.toggle()
                         // Resize window to accommodate panel
                         resizeWindowForPanels(showHistory: showHistoryPanel, showDetails: showDetailsPanel)
@@ -294,11 +296,9 @@ struct ContentView: View {
                 
                 VideoDetailsPanel(item: selectedQueueItem, historyItem: selectedHistoryItem)
                     .frame(width: 350)
-                    .transition(.asymmetric(
-                        insertion: .push(from: .trailing),
-                        removal: .push(from: .leading)
-                    ))
-                    .animation(.spring(response: 0.4, dampingFraction: 0.8), value: showDetailsPanel)
+                    // PERFORMANCE FIX: Simplified animation
+                    .transition(.move(edge: .trailing))
+                    .animation(.easeInOut(duration: 0.2), value: showDetailsPanel)
             }
         }
         .frame(minWidth: {
@@ -307,15 +307,26 @@ struct ContentView: View {
             if showDetailsPanel { width += 350 }
             return CGFloat(width)
         }(), minHeight: 600)
-        .onReceive(pasteboardTimer) { _ in
-            checkClipboardForURL()
+        .onAppear {
+            // Only start clipboard monitoring if auto-add is enabled
+            startClipboardMonitoring()
         }
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResizeNotification)) { _ in
-            // Auto-adjust panels when window is resized
-            withAnimation(.easeInOut(duration: 0.2)) {
-                autoAdjustPanelWidth()
+        .onDisappear {
+            stopClipboardMonitoring()
+        }
+        .onChange(of: preferences.autoAddToQueue) { oldValue, newValue in
+            if newValue {
+                startClipboardMonitoring()
+            } else {
+                stopClipboardMonitoring()
             }
         }
+        // PERFORMANCE FIX: Remove window resize listener that causes constant updates
+        // .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResizeNotification)) { _ in
+        //     withAnimation(.easeInOut(duration: 0.2)) {
+        //         autoAdjustPanelWidth()
+        //     }
+        // }
         .onChange(of: showingDebugView) { oldValue, newValue in
             if newValue {
                 openDebugWindow()
@@ -413,8 +424,33 @@ struct ContentView: View {
         }
     }
     
-    private func checkClipboardForURL() {
+    // MARK: - Clipboard Monitoring (Performance Optimized)
+    
+    private func startClipboardMonitoring() {
         guard preferences.autoAddToQueue else { return }
+        
+        // Stop any existing timer
+        stopClipboardMonitoring()
+        
+        // Create timer that checks every 2 seconds (was 0.5s)
+        let timer = Timer.publish(every: 2.0, on: .main, in: .common)
+        pasteboardTimer = timer
+        timerCancellable = timer
+            .autoconnect()
+            .sink { _ in
+                self.checkClipboardForURL()
+            }
+    }
+    
+    private func stopClipboardMonitoring() {
+        timerCancellable?.cancel()
+        timerCancellable = nil
+        pasteboardTimer = nil
+    }
+    
+    private func checkClipboardForURL() {
+        // No longer need guard since timer only runs when enabled
+        // guard preferences.autoAddToQueue else { return }
         
         if let clipboard = NSPasteboard.general.string(forType: .string),
            clipboard != lastClipboard,
@@ -1079,7 +1115,8 @@ struct EnhancedProgressBar: View {
                             )
                         )
                         .frame(width: geometry.size.width * CGFloat(overallProgress) / 100)
-                        .animation(.spring(response: 0.5, dampingFraction: 0.8), value: overallProgress)
+                        // PERFORMANCE FIX: Simpler animation for progress updates
+                        .animation(.linear(duration: 0.2), value: overallProgress)
                     
                     // Shimmer effect for active downloads
                     if downloadingCount > 0 {
@@ -1097,11 +1134,8 @@ struct EnhancedProgressBar: View {
                             )
                             .frame(width: geometry.size.width * CGFloat(overallProgress) / 100)
                             .offset(x: geometry.size.width * CGFloat(overallProgress) / 100 - 50)
-                            .animation(
-                                Animation.linear(duration: 1.5)
-                                    .repeatForever(autoreverses: false),
-                                value: downloadingCount
-                            )
+                            // PERFORMANCE FIX: Remove shimmer animation that runs constantly
+                            .opacity(0)
                     }
                 }
             }

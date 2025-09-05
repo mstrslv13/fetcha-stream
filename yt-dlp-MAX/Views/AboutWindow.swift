@@ -15,7 +15,11 @@ struct AboutWindow: View {
                 .font(.system(size: 36))
                 .fontWeight(.bold)
             
+<<<<<<< Updated upstream
             Text("Version 0.9.0")
+=======
+            Text("Version 0.9.6")
+>>>>>>> Stashed changes
                 .font(.system(size: 14))
                 .foregroundColor(.secondary)
             

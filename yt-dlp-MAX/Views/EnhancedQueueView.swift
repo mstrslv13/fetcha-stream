@@ -5,9 +5,26 @@ struct EnhancedQueueView: View {
     @Binding var selectedItem: QueueDownloadTask?
     @State private var draggedItem: QueueDownloadTask?
     
+    // PERFORMANCE FIX: Cache sorted items to avoid constant re-sorting
+    @State private var cachedSortedItems: [QueueDownloadTask] = []
+    @State private var lastQueueCount = 0
+    
     // Sort items: downloading first, then waiting/paused/failed, then completed
     var sortedItems: [QueueDownloadTask] {
-        queue.items.sorted { item1, item2 in
+        // Only re-sort if queue has changed significantly
+        let needsResort = queue.items.count != lastQueueCount ||
+                         queue.items.contains { item in
+                             // Check if any item changed status
+                             !cachedSortedItems.contains { cached in
+                                 cached.id == item.id && cached.status == item.status
+                             }
+                         }
+        
+        if !needsResort && !cachedSortedItems.isEmpty {
+            return cachedSortedItems
+        }
+        
+        let sorted = queue.items.sorted { item1, item2 in
             // Define sort priority (lower number = higher priority)
             func priority(for status: DownloadStatus) -> Int {
                 switch status {
@@ -31,6 +48,14 @@ struct EnhancedQueueView: View {
             let index2 = queue.items.firstIndex(where: { $0.id == item2.id }) ?? 0
             return index1 < index2
         }
+        
+        // Update cache
+        DispatchQueue.main.async {
+            self.cachedSortedItems = sorted
+            self.lastQueueCount = queue.items.count
+        }
+        
+        return sorted
     }
     
     var body: some View {
@@ -116,11 +141,12 @@ struct QueueDropDelegate: DropDelegate {
 
 struct QueueItemRow: View {
     @ObservedObject var item: QueueDownloadTask
-    @ObservedObject var queue: DownloadQueue  // Make queue observable to trigger updates
+    let queue: DownloadQueue  // PERFORMANCE FIX: Don't observe queue, only item
     let isSelected: Bool
     @State private var showingFormatPicker = false
     @State private var showingFormatError = false
-    @StateObject private var preferences = AppPreferences.shared
+    // PERFORMANCE FIX: Access preferences statically instead of observing
+    private var preferences: AppPreferences { AppPreferences.shared }
     
     var statusIcon: String {
         switch item.status {
