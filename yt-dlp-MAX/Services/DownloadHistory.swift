@@ -174,8 +174,6 @@ class DownloadHistory: ObservableObject {
         saveHistory()
     }
     
-<<<<<<< Updated upstream
-=======
     // FIX: Handle private mode toggle at runtime - properly clear memory
     func handlePrivateModeToggle() {
         if AppPreferences.shared.privateMode {
@@ -202,7 +200,6 @@ class DownloadHistory: ObservableObject {
         }
     }
     
->>>>>>> Stashed changes
     // Perform auto-clear based on preferences
     func performAutoClear() {
         let autoClearSetting = AppPreferences.shared.historyAutoClear

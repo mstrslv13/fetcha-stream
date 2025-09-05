@@ -5,7 +5,7 @@ struct VideoInfo: Codable {
     let uploader: String?
     let duration: Double?  // Changed to Double to handle float values
     let webpage_url: String
-    let thumbnail: String?
+    var thumbnail: String?
     var formats: [VideoFormat]?  // Array of available formats
     
     // Additional fields that might come from different sources

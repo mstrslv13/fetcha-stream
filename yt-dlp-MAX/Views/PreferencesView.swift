@@ -852,7 +852,7 @@ struct PrivacyPreferencesView: View {
                                 let index1 = order.firstIndex(of: key1) ?? 999
                                 let index2 = order.firstIndex(of: key2) ?? 999
                                 return index1 < index2
-                            })), id: \.self) { key in
+                            }), id: \.self) { key in
                                 Text(preferences.historyAutoClearOptions[key] ?? key)
                                     .tag(key)
                             }
@@ -952,11 +952,8 @@ struct AboutView: View {
                 .font(.system(size: 38))
                 .fontWeight(.bold)
             
-<<<<<<< Updated upstream
             Text("Version 0.9.0")
-=======
             Text("Version 0.9.6")
->>>>>>> Stashed changes
                 .font(.system(size: 16))
                 .foregroundColor(.secondary)
             

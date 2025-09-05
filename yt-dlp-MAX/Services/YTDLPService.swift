@@ -797,9 +797,6 @@ class YTDLPService {
         if let ffmpegPath = findFFmpeg() {
             arguments.append(contentsOf: ["--ffmpeg-location", ffmpegPath])
         } else {
-<<<<<<< Updated upstream
-            DebugLogger.shared.log("Warning: ffmpeg not found, video/audio merging may fail", level: .warning)
-=======
             DebugLogger.shared.log("FFmpeg not found - features limited", level: .warning, details: "Thumbnail embedding and format merging will not work")
             PersistentDebugLogger.shared.log("WARNING: ffmpeg not found, video/audio merging and thumbnail embedding will fail", level: .warning)
             
@@ -810,7 +807,6 @@ class YTDLPService {
                     showFFmpegMissingAlert()
                 }
             }
->>>>>>> Stashed changes
         }
         
         // Only set merge format for video downloads
