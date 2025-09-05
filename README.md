@@ -14,6 +14,7 @@ Whether you're saving tutorials for offline viewing, archiving content, or build
 
 ## Features
 
+- 📦 **Copy and go!** - `⌘C` a video URL and... done. It's that easy.
 - 🎬 **Download videos from YouTube, X** and 1000+ sites
 - 📊 **Multiple quality options** - Choose your preferred resolution and container format
 - 🎯 **Queue management** - Download multiple videos concurrently
@@ -46,7 +47,6 @@ brew install ffmpeg
 
 1. Download the latest release from [Releases](https://github.com/mstrslv13/fetcha/releases)
 2. Open the DMG file and drag Fetcha to your Applications folder
-3. On first launch, you may need to right-click and select "Open" to bypass Gatekeeper
 
 ## Building from Source
 
@@ -71,14 +71,15 @@ open yt-dlp-MAX.xcodeproj
 
 ## Usage
 
-1. **Add a video**: Paste a YouTube URL into the input field
-2. **Select quality**: Choose your preferred format from the dropdown
+1. **Add a video**: Copy a Youtube URL and Fetcha automates the rest
+2. **Select quality**: Choose your preferred format in preferences
 3. **Queue downloads**: Add multiple videos to download concurrently
 4. **Monitor progress**: Track downloads in real-time
 5. **Access history**: View and search all past downloads
 
 ### Keyboard Shortcuts
 
+- `⌘C` - Copy URL
 - `⌘V` - Paste URL
 - `⌘,` - Open Preferences
 - `⌘H` - Toggle History Panel
@@ -142,4 +143,4 @@ For issues and feature requests, please use the [GitHub Issues](https://github.c
 
 ---
 
-**Fetcha** - Simple for beginners, powerful when needed.
+**Fetcha** - Simple for beginners, powerful for nerds.
