@@ -45,7 +45,7 @@ brew install ffmpeg
 
 ### Download Fetcha
 
-1. Download the latest release from [Releases](https://github.com/mstrslv13/fetcha/releases)
+1. Download the latest release from [Releases](https://github.com/mstrslv13/fetcha-stream/releases)
 2. Open the DMG file and drag Fetcha to your Applications folder
 
 ## Building from Source
@@ -58,7 +58,7 @@ brew install ffmpeg
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/mstrslv13/fetcha.git
+git clone https://github.com/mstrslv13/fetcha-stream.git
 cd fetcha
 ```
 
@@ -76,15 +76,6 @@ open yt-dlp-MAX.xcodeproj
 3. **Queue downloads**: Add multiple videos to download concurrently
 4. **Monitor progress**: Track downloads in real-time
 5. **Access history**: View and search all past downloads
-
-### Keyboard Shortcuts
-
-- `⌘C` - Copy URL
-- `⌘V` - Paste URL
-- `⌘,` - Open Preferences
-- `⌘H` - Toggle History Panel
-- `⌘D` - Toggle Details Panel
-- `⌘⇧P` - Toggle Privacy Mode
 
 ## Privacy Mode
 
@@ -139,7 +130,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Support
 
-For issues and feature requests, please use the [GitHub Issues](https://github.com/mstrslv13/fetcha/issues) page.
+For issues and feature requests, please use the [GitHub Issues](https://github.com/mstrslv13/fetcha-stream/issues) page.
 
 ---
 
