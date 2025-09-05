@@ -54,6 +54,15 @@
       savedToolIdentifier = ""
       useCustomWorkingDirectory = "NO"
       debugDocumentVersioning = "YES">
+      <MacroExpansion>
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "F8522F062E588C4300B30F2A"
+            BuildableName = "yt-dlp-MAX.app"
+            BlueprintName = "yt-dlp-MAX"
+            ReferencedContainer = "container:yt-dlp-MAX.xcodeproj">
+         </BuildableReference>
+      </MacroExpansion>
    </ProfileAction>
    <AnalyzeAction
       buildConfiguration = "Debug">

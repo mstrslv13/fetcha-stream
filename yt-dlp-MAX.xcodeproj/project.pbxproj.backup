@@ -6,6 +6,15 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		F86C62622E58F56900BC7763 /* QueueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F86C62602E58F56900BC7763 /* QueueView.swift */; };
+		F86C62632E58F56900BC7763 /* DownloadQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = F86C625D2E58F56900BC7763 /* DownloadQueue.swift */; };
+		F86C62642E58F56900BC7763 /* QueueSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F86C625F2E58F56900BC7763 /* QueueSettingsView.swift */; };
+		F889F70A2E591D3B000F863D /* FormatTypeSelector.swift in Sources */ = {isa = PBXBuildFile; fileRef = F889F7052E591D3B000F863D /* FormatTypeSelector.swift */; };
+		F889F70B2E591D3B000F863D /* QueueSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F889F7062E591D3B000F863D /* QueueSettingsView.swift */; };
+		F889F70C2E591D3B000F863D /* QueueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F889F7072E591D3B000F863D /* QueueView.swift */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		F8522F162E588C4400B30F2A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -27,6 +36,12 @@
 		F8522F072E588C4300B30F2A /* yt-dlp-MAX.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "yt-dlp-MAX.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F8522F152E588C4400B30F2A /* yt-dlp-MAXTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "yt-dlp-MAXTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F8522F1F2E588C4400B30F2A /* yt-dlp-MAXUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "yt-dlp-MAXUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		F86C625D2E58F56900BC7763 /* DownloadQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadQueue.swift; sourceTree = "<group>"; };
+		F86C625F2E58F56900BC7763 /* QueueSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueueSettingsView.swift; sourceTree = "<group>"; };
+		F86C62602E58F56900BC7763 /* QueueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueueView.swift; sourceTree = "<group>"; };
+		F889F7052E591D3B000F863D /* FormatTypeSelector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormatTypeSelector.swift; sourceTree = "<group>"; };
+		F889F7062E591D3B000F863D /* QueueSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueueSettingsView.swift; sourceTree = "<group>"; };
+		F889F7072E591D3B000F863D /* QueueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueueView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -65,6 +80,7 @@
 		F8522EFE2E588C4300B30F2A = {
 			isa = PBXGroup;
 			children = (
+				F889F7082E591D3B000F863D /* Views */,
 				F86C625E2E58F56900BC7763 /* Services */,
 				F86C62612E58F56900BC7763 /* Views */,
 				F8522F092E588C4300B30F2A /* yt-dlp-MAX */,
@@ -85,6 +101,7 @@
 		F86C625E2E58F56900BC7763 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				F86C625D2E58F56900BC7763 /* DownloadQueue.swift */,
 			);
 			name = Services;
 			path = "yt-dlp-MAX/Services";
@@ -93,6 +110,19 @@
 		F86C62612E58F56900BC7763 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				F86C625F2E58F56900BC7763 /* QueueSettingsView.swift */,
+				F86C62602E58F56900BC7763 /* QueueView.swift */,
+			);
+			name = Views;
+			path = "yt-dlp-MAX/Views";
+			sourceTree = "<group>";
+		};
+		F889F7082E591D3B000F863D /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				F889F7052E591D3B000F863D /* FormatTypeSelector.swift */,
+				F889F7062E591D3B000F863D /* QueueSettingsView.swift */,
+				F889F7072E591D3B000F863D /* QueueView.swift */,
 			);
 			name = Views;
 			path = "yt-dlp-MAX/Views";
@@ -236,6 +266,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F86C62622E58F56900BC7763 /* QueueView.swift in Sources */,
+				F86C62632E58F56900BC7763 /* DownloadQueue.swift in Sources */,
+				F86C62642E58F56900BC7763 /* QueueSettingsView.swift in Sources */,
+				F889F70A2E591D3B000F863D /* FormatTypeSelector.swift in Sources */,
+				F889F70B2E591D3B000F863D /* QueueSettingsView.swift in Sources */,
+				F889F70C2E591D3B000F863D /* QueueView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

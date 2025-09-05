@@ -70,7 +70,7 @@ struct VideoInfo: Codable {
 
 // This represents a single downloadable format
 // Think of each format as a different "version" of the same video
-struct VideoFormat: Codable, Identifiable {
+struct VideoFormat: Codable, Identifiable, Hashable {
     let format_id: String        // yt-dlp's internal ID for this format
     let ext: String              // File extension (mp4, webm, etc.)
     let format_note: String?     // Human-readable note like "1080p"
