@@ -114,6 +114,7 @@ struct QueueItemView: View {
     let queue: DownloadQueue
     @State private var isHovering = false
     @State private var showingFormatPicker = false
+    @State private var showingErrorDetail = false
     
     var body: some View {
         HStack(spacing: 12) {
@@ -253,17 +254,31 @@ struct QueueItemView: View {
                     .buttonStyle(.plain)
                     
                 case .failed:
+                    Button(action: { showingErrorDetail = true }) {
+                        Text("ERROR")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.red)
+                            .cornerRadius(4)
+                    }
+                    .buttonStyle(.plain)
+                    .help("View error details and quick fixes")
+                    
                     Button(action: { queue.resumeDownload(item) }) {
                         Image(systemName: "arrow.clockwise.circle.fill")
                             .foregroundColor(Color.orange)
                     }
                     .buttonStyle(.plain)
+                    .help("Retry download")
                     
                     Button(action: { queue.removeFromQueue(item) }) {
                         Image(systemName: "xmark.circle")
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(.plain)
+                    .help("Remove from queue")
                 }
             }
             .opacity(isHovering ? 1 : 0.6)
@@ -302,6 +317,9 @@ struct QueueItemView: View {
             }
             .padding()
             .frame(width: 500, height: 400)
+        }
+        .sheet(isPresented: $showingErrorDetail) {
+            QueueItemErrorDetailView(item: item, queue: queue)
         }
     }
 }

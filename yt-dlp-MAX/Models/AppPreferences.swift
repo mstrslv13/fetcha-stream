@@ -65,6 +65,10 @@ class AppPreferences: ObservableObject {
     @AppStorage("audioExtractionQuality") var audioExtractionQuality: String = "high"
     @AppStorage("keepVideoAfterExtraction") var keepVideoAfterExtraction: Bool = true
     
+    // File Naming Settings
+    @AppStorage("autoIncrementFilenames") var autoIncrementFilenames: Bool = false
+    @AppStorage("maxIncrementAttempts") var maxIncrementAttempts: Int = 100
+    
     // History Management Settings
     @AppStorage("historyAutoClear") var historyAutoClear: String = "never"  // never, 1, 7, 30, 90 days
     @AppStorage("privateMode") var privateMode: Bool = false

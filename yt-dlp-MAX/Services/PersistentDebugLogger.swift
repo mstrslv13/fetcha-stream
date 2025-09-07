@@ -168,6 +168,36 @@ class PersistentDebugLogger: ObservableObject {
         logs.filter { $0.sessionId == sessionId }
     }
     
+    func getRecentLogs(count: Int = 50) -> [String] {
+        let recentLogs = Array(logs.suffix(count))
+        return recentLogs.map { log in
+            let timeFormatter = DateFormatter()
+            timeFormatter.timeStyle = .medium
+            let timeString = timeFormatter.string(from: log.timestamp)
+            return "[\(timeString)] [\(log.level.rawValue.uppercased())] \(log.message)"
+        }
+    }
+    
+    func getFormattedLogs() -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        formatter.timeStyle = .medium
+        
+        return logs.map { log in
+            let timestamp = formatter.string(from: log.timestamp)
+            let levelString = log.level.rawValue.uppercased().padding(toLength: 7, withPad: " ", startingAt: 0)
+            var output = "[\(timestamp)] [\(levelString)] \(log.message)"
+            if let details = log.details {
+                output += "\n  Details: \(details)"
+            }
+            return output
+        }.joined(separator: "\n")
+    }
+    
+    func clearLogs() {
+        clear()
+    }
+    
     private func loadLogs() {
         // Load logs from disk
         guard FileManager.default.fileExists(atPath: logFile.path) else { return }

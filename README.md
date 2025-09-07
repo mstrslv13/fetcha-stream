@@ -6,7 +6,8 @@ Fetch streaming media as easy as CMD+C! Simple, modern and powerful. Download st
 
 ![macOS](https://img.shields.io/badge/macOS-15.0%2B-blue)
 ![Swift](https://img.shields.io/badge/Swift-5.0-orange)
-![Version](https://img.shields.io/badge/version-1.0-green)
+![Version](https://img.shields.io/badge/version-1.1.1-green)
+![License](https://img.shields.io/badge/license-Commercial-red)
 
 Built with Swift and SwiftUI, Fetcha provides a beautiful native interface for yt-dlp with browser cookie support and advanced features.  The app follows the VLC model: simple for beginners, powerful when needed.
 
@@ -14,6 +15,7 @@ Whether you're saving tutorials for offline viewing, archiving content, or build
 
 ## Features
 
+### Core Features
 - 📦 **Copy and go!** - `⌘C` a video URL and... done. It's that easy.
 - 🎬 **Download videos from YouTube, X** and 1000+ sites
 - 📊 **Multiple quality options** - Choose your preferred resolution and container format
@@ -24,29 +26,68 @@ Whether you're saving tutorials for offline viewing, archiving content, or build
 - 🖼️ **Post-processing** - Extract audio files automatically in wav, mp3, flac, m4a, ogg, and opus formats
 - ⚡ **Optimized performance** - Native SwiftUI, minimal CPU and memory usage
 
+### New in v1.1.1
+- 🚀 **Automated Setup** - One-click installation of all dependencies
+- 🎯 **Smart Error Handling** - User-friendly error messages with quick fixes
+- 📁 **Duplicate File Management** - Automatic filename incrementing
+- 🐛 **Professional Debug Console** - Searchable, exportable logging system
+- 📋 **Enhanced Menu Bar** - Quick access to all features and tools
+
 ## Installation
 
-### Prerequisites
+### Quick Install (Recommended)
 
-1. **Install Homebrew** (if not already installed):
+1. **Download Fetcha** from [Releases](https://github.com/mstrslv13/fetcha-stream/releases)
+2. **Open the DMG** and drag Fetcha to your Applications folder
+3. **Launch Fetcha** - it will guide you through everything else!
+
+### First Launch Experience
+
+When you open Fetcha for the first time, our friendly setup wizard will:
+
+1. **Check for Required Tools** - Fetcha needs yt-dlp (the download engine) and optionally ffmpeg (for video processing)
+
+2. **Offer Three Simple Options**:
+   - **🚀 "Install Automatically"** (Recommended)
+     - Just click and relax! Fetcha will:
+     - Install Homebrew if needed (you'll enter your password once)
+     - Install yt-dlp and ffmpeg automatically
+     - Show real-time progress for each step
+     - Takes about 2-3 minutes total
+   
+   - **📁 "Select Manually"** 
+     - Already have these tools? Just point Fetcha to where they're installed
+     - Useful for custom installations or if you prefer managing tools yourself
+   
+   - **⏭️ "Skip"**
+     - Continue without ffmpeg (some features limited)
+     - Note: yt-dlp is required for Fetcha to work
+
+3. **Optional: Browser Cookies**
+   - Grant permission for Fetcha to use your browser cookies
+   - This lets you download private or age-restricted videos
+   - You can always set this up later in Preferences
+
+4. **You're Ready!** 
+   - That's it! No command line, no technical knowledge needed
+   - Just copy any video URL and Fetcha handles the rest
+
+### Manual Installation (Advanced Users)
+
+If you prefer to install dependencies manually:
+
 ```bash
+# Install Homebrew (if not installed)
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-```
 
-2. **Install yt-dlp**:
-```bash
+# Install yt-dlp (required)
 brew install yt-dlp
-```
 
-3. **Install ffmpeg** (optional but recommended):
-```bash
+# Install ffmpeg (recommended)
 brew install ffmpeg
 ```
 
-### Download Fetcha
-
-1. Download the latest release from [Releases](https://github.com/mstrslv13/fetcha-stream/releases)
-2. Open the DMG file and drag Fetcha to your Applications folder
+Then download and install Fetcha from the releases page.
 
 ## Building from Source
 
@@ -130,7 +171,11 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This software uses a dual licensing model:
+- **Free** for personal, educational, and non-profit use
+- **Commercial license required** for business use
+
+See the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 

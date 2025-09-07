@@ -148,9 +148,22 @@ class YTDLPService {
             }
         }
         
-        let arguments = [
+        // Handle auto-increment for duplicate filenames if enabled
+        var outputPath = task.outputURL.path
+        if preferences.autoIncrementFilenames {
+            outputPath = getIncrementedFilePath(outputPath)
+            if outputPath != task.outputURL.path {
+                PersistentDebugLogger.shared.log(
+                    "Auto-increment for compatibility method", 
+                    level: .info, 
+                    details: "Using: \(outputPath)"
+                )
+            }
+        }
+        
+        var arguments = [
             "-f", formatArg,                      // Format selection
-            "-o", task.outputURL.path,            // Where to save the file
+            "-o", outputPath,                     // Where to save the file
             "--newline",                          // Output progress on separate lines
             "--progress",                         // Show progress info
             "--no-part",                          // Don't use .part files
@@ -159,11 +172,17 @@ class YTDLPService {
             task.videoInfo.webpage_url            // The URL to download
         ]
         
+        // Add --no-overwrites as additional safety if auto-increment is enabled
+        if preferences.autoIncrementFilenames {
+            arguments.insert("--no-overwrites", at: arguments.count - 1)
+        }
+        
         process.arguments = arguments
         
         // Log the full command for debugging
         let fullCommand = "\(ytdlpPath) \(arguments.joined(separator: " "))"
-        PersistentDebugLogger.shared.log("Executing command", level: .command, details: fullCommand)
+        // Verbose command logging removed for performance
+        // PersistentDebugLogger.shared.log("Executing command", level: .command, details: fullCommand)
         
         // Set up pipes for output and errors separately
         let outputPipe = Pipe()
@@ -184,16 +203,36 @@ class YTDLPService {
             if let line = String(data: data, encoding: .utf8) {
                 let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
                 if !trimmedLine.isEmpty {
+                    // Filter verbose output
                     if trimmedLine.contains("ERROR") {
                         PersistentDebugLogger.shared.log("yt-dlp error", level: .error, details: trimmedLine)
                     } else if trimmedLine.contains("WARNING") {
                         PersistentDebugLogger.shared.log("yt-dlp warning", level: .warning, details: trimmedLine)
                     } else if trimmedLine.contains("[download]") {
-                        // Parse progress but don't log every update
+                        // Parse progress but only log significant events
                         self.parseProgress(line: trimmedLine, for: task)
-                    } else {
-                        PersistentDebugLogger.shared.log("yt-dlp", level: .info, details: trimmedLine)
+                        
+                        // Only log download milestones and state changes
+                        if trimmedLine.contains("Destination:") || 
+                           trimmedLine.contains("100%") || 
+                           trimmedLine.contains("has already been downloaded") ||
+                           trimmedLine.contains("Resuming download") {
+                            PersistentDebugLogger.shared.log("Download status", level: .info, details: trimmedLine)
+                        }
+                        // Skip verbose progress updates like "23.4% of ~ 21.73MiB at 317.41KiB/s"
+                    } else if trimmedLine.contains("[ffmpeg]") || trimmedLine.contains("[Merger]") {
+                        // Only log ffmpeg/merger start and completion
+                        if trimmedLine.contains("Merging formats") || 
+                           trimmedLine.contains("Deleting original file") ||
+                           trimmedLine.contains("Adding metadata") {
+                            PersistentDebugLogger.shared.log("Processing", level: .info, details: trimmedLine)
+                        }
+                        // Skip frame-by-frame ffmpeg output
+                    } else if trimmedLine.contains("[ExtractAudio]") {
+                        // Audio extraction is important
+                        PersistentDebugLogger.shared.log("Audio extraction", level: .info, details: trimmedLine)
                     }
+                    // Removed verbose yt-dlp output logging for performance
                 }
             }
         }
@@ -206,15 +245,22 @@ class YTDLPService {
             if let errorLine = String(data: data, encoding: .utf8) {
                 let trimmedError = errorLine.trimmingCharacters(in: .whitespacesAndNewlines)
                 if !trimmedError.isEmpty {
-                    // Categorize stderr output
-                    if trimmedError.contains("[debug]") {
-                        PersistentDebugLogger.shared.log("Debug", level: .info, details: trimmedError)
+                    // Filter verbose stderr output
+                    if trimmedError.contains("ERROR") || trimmedError.contains("error:") {
+                        PersistentDebugLogger.shared.log("Error", level: .error, details: trimmedError)
                     } else if trimmedError.contains("WARNING") {
                         PersistentDebugLogger.shared.log("Warning", level: .warning, details: trimmedError)
-                    } else if trimmedError.contains("ERROR") || trimmedError.contains("error:") {
-                        PersistentDebugLogger.shared.log("Error", level: .error, details: trimmedError)
-                    } else {
-                        PersistentDebugLogger.shared.log("Info", level: .info, details: trimmedError)
+                    } else if trimmedError.contains("[debug]") {
+                        // Skip all debug output for performance
+                    } else if !trimmedError.contains("frame=") && 
+                              !trimmedError.contains("size=") && 
+                              !trimmedError.contains("time=") &&
+                              !trimmedError.contains("bitrate=") {
+                        // Skip other stderr output for performance
+                        // Only log if it's truly important
+                        if trimmedError.contains("failed") || trimmedError.contains("not found") {
+                            PersistentDebugLogger.shared.log("Info", level: .info, details: trimmedError)
+                        }
                     }
                 }
             }
@@ -599,7 +645,7 @@ class YTDLPService {
             }
         } ?? []
         let fullCommand = "\(ytdlpPath) \(safeArgs.joined(separator: " "))"
-        PersistentDebugLogger.shared.log("Fetching metadata", level: .command, details: fullCommand)
+        PersistentDebugLogger.shared.log("Fetching metadata", level: .info, details: "URL: \(sanitizedURL)")
         
         // Set up pipes for both output and errors
         let outputPipe = Pipe()
@@ -672,15 +718,13 @@ class YTDLPService {
         
         // Try to convert to string first to see what we got
         if let jsonString = String(data: data, encoding: .utf8) {
-            // Log first 500 characters for debugging
-            let preview = String(jsonString.prefix(500))
-            PersistentDebugLogger.shared.log("JSON preview", level: .info, details: "\(preview)...")
-            
             // Check if it's actually JSON
             if !jsonString.trimmingCharacters(in: .whitespacesAndNewlines).starts(with: "{") {
+                // Only log when there's an error
                 PersistentDebugLogger.shared.log("Output doesn't look like JSON", level: .error, details: jsonString)
                 throw YTDLPError.invalidJSON("Output is not valid JSON format")
             }
+            // Removed verbose JSON preview logging for performance
         }
         
         // Try to decode the JSON into our VideoInfo structure
@@ -758,8 +802,45 @@ class YTDLPService {
         // Add naming template
         outputTemplate += "/\(preferences.namingTemplate)"
         
-        PersistentDebugLogger.shared.log("Output template", level: .info, details: outputTemplate)
-        arguments.append(contentsOf: ["-o", outputTemplate])
+        // Handle auto-increment for duplicate filenames if enabled
+        if preferences.autoIncrementFilenames {
+            // First, try to get the actual filename that would be used
+            if let actualFilename = await getActualFilename(url: url, template: outputTemplate) {
+                let incrementedPath = getIncrementedFilePath(actualFilename)
+                
+                // If the path changed, we need to use a fixed output path instead of template
+                if incrementedPath != actualFilename {
+                    // Replace the template with the actual incremented path
+                    // Remove the last template argument and add the fixed path
+                    if let templateIndex = arguments.lastIndex(of: outputTemplate) {
+                        arguments.remove(at: templateIndex)
+                        arguments.remove(at: templateIndex - 1) // Remove "-o" as well
+                    }
+                    arguments.append(contentsOf: ["-o", incrementedPath])
+                    PersistentDebugLogger.shared.log(
+                        "Auto-increment active", 
+                        level: .info, 
+                        details: "Using incremented path: \(incrementedPath)"
+                    )
+                } else {
+                    PersistentDebugLogger.shared.log("Output template", level: .info, details: outputTemplate)
+                    arguments.append(contentsOf: ["-o", outputTemplate])
+                }
+            } else {
+                // Fallback: couldn't determine filename, use yt-dlp's --no-overwrites
+                PersistentDebugLogger.shared.log("Output template", level: .info, details: outputTemplate)
+                arguments.append(contentsOf: ["-o", outputTemplate])
+                arguments.append("--no-overwrites")
+                PersistentDebugLogger.shared.log(
+                    "Auto-increment fallback", 
+                    level: .info, 
+                    details: "Using yt-dlp's --no-overwrites"
+                )
+            }
+        } else {
+            PersistentDebugLogger.shared.log("Output template", level: .info, details: outputTemplate)
+            arguments.append(contentsOf: ["-o", outputTemplate])
+        }
         
         // Apply filename sanitization options
         if preferences.removeSpecialCharacters {
@@ -910,7 +991,7 @@ class YTDLPService {
             }
         }
         let fullCommand = "\(ytdlpPath) \(safeArgs.joined(separator: " "))"
-        PersistentDebugLogger.shared.log("Executing yt-dlp command", level: .command, details: fullCommand)
+        PersistentDebugLogger.shared.log("Starting download", level: .info, details: "URL: \(sanitizedURL)")
         
         // Set up environment to include common binary paths
         var environment = ProcessInfo.processInfo.environment
@@ -923,7 +1004,7 @@ class YTDLPService {
         process.standardOutput = outputPipe
         process.standardError = errorPipe
         
-        // Read output
+        // Read output with smart filtering
         outputPipe.fileHandleForReading.readabilityHandler = { handle in
             let data = handle.availableData
             guard !data.isEmpty else { return }
@@ -932,33 +1013,7 @@ class YTDLPService {
                 for line in output.components(separatedBy: .newlines) {
                     let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
                     if !trimmed.isEmpty {
-                        // Log ALL yt-dlp output to debug console
-                        PersistentDebugLogger.shared.log("yt-dlp", level: .command, details: trimmed)
-                        
-                        // Capture the destination file path
-                        if trimmed.contains("[download] Destination:") {
-                            if let range = trimmed.range(of: "Destination: ") {
-                                let filePath = String(trimmed[range.upperBound...])
-                                Task { @MainActor in
-                                    downloadTask.actualFilePath = URL(fileURLWithPath: filePath)
-                                }
-                                PersistentDebugLogger.shared.log("Captured file path", level: .info, details: filePath)
-                            }
-                        } else if trimmed.contains("[Merger] Merging formats into") {
-                            // Also capture merged file path
-                            if let range = trimmed.range(of: "into \"") {
-                                let afterInto = String(trimmed[range.upperBound...])
-                                if let endRange = afterInto.range(of: "\"") {
-                                    let filePath = String(afterInto[..<endRange.lowerBound])
-                                    Task { @MainActor in
-                                        downloadTask.actualFilePath = URL(fileURLWithPath: filePath)
-                                    }
-                                    PersistentDebugLogger.shared.log("Captured merged file path", level: .info, details: filePath)
-                                }
-                            }
-                        }
-                        
-                        // Also handle specific cases
+                        // Always handle errors and warnings
                         if trimmed.contains("ERROR") {
                             PersistentDebugLogger.shared.log("Download error", level: .error, details: trimmed)
                             Task { @MainActor in
@@ -967,20 +1022,91 @@ class YTDLPService {
                             }
                         } else if trimmed.contains("WARNING") {
                             PersistentDebugLogger.shared.log("Download warning", level: .warning, details: trimmed)
-                        } else if trimmed.contains("[download]") {
-                            self.parseProgress(line: trimmed, for: downloadTask)
-                        } else if trimmed.contains("[ffmpeg]") || trimmed.contains("[Merger]") {
-                            PersistentDebugLogger.shared.log("FFmpeg processing", level: .info, details: trimmed)
+                        }
+                        
+                        // Capture important file paths
+                        if trimmed.contains("[download] Destination:") {
+                            if let range = trimmed.range(of: "Destination: ") {
+                                let filePath = String(trimmed[range.upperBound...])
+                                Task { @MainActor in
+                                    downloadTask.actualFilePath = URL(fileURLWithPath: filePath)
+                                }
+                                PersistentDebugLogger.shared.log("Output file", level: .info, details: filePath)
+                            }
+                        } else if trimmed.contains("[Merger] Merging formats into") {
+                            // Capture merged file path
+                            if let range = trimmed.range(of: "into \"") {
+                                let afterInto = String(trimmed[range.upperBound...])
+                                if let endRange = afterInto.range(of: "\"") {
+                                    let filePath = String(afterInto[..<endRange.lowerBound])
+                                    Task { @MainActor in
+                                        downloadTask.actualFilePath = URL(fileURLWithPath: filePath)
+                                    }
+                                    PersistentDebugLogger.shared.log("Merged file", level: .info, details: filePath)
+                                }
+                            }
+                            PersistentDebugLogger.shared.log("Merging formats", level: .info, details: "Processing audio/video merge")
                             Task { @MainActor in
                                 downloadTask.downloadStatus = "Merging"
                             }
+                        }
+                        
+                        // Handle download progress
+                        else if trimmed.contains("[download]") {
+                            self.parseProgress(line: trimmed, for: downloadTask)
+                            
+                            // Only log significant download events
+                            if trimmed.contains("100%") || 
+                               trimmed.contains("has already been downloaded") ||
+                               trimmed.contains("Resuming download") ||
+                               trimmed.contains("Downloading") && trimmed.contains("of") {
+                                // Log download start (contains total size)
+                                if trimmed.contains("Downloading") && trimmed.contains("of") {
+                                    PersistentDebugLogger.shared.log("Download started", level: .info, details: trimmed)
+                                } else {
+                                    PersistentDebugLogger.shared.log("Download status", level: .info, details: trimmed)
+                                }
+                            }
+                            // Skip verbose progress like "23.4% of ~ 21.73MiB at 317.41KiB/s ETA 01:08"
+                        }
+                        
+                        // Handle ffmpeg/merger events (only significant ones)
+                        else if trimmed.contains("[ffmpeg]") {
+                            if trimmed.contains("Adding metadata") || 
+                               trimmed.contains("Deleting original") {
+                                PersistentDebugLogger.shared.log("Post-processing", level: .info, details: trimmed)
+                            }
+                            // Skip frame-by-frame output
+                        }
+                        
+                        // Handle audio extraction
+                        else if trimmed.contains("[ExtractAudio]") {
+                            PersistentDebugLogger.shared.log("Audio extraction", level: .info, details: trimmed)
+                        }
+                        
+                        // Handle other significant events
+                        else if trimmed.contains("Extracting URL") || 
+                                trimmed.contains("[youtube]") && trimmed.contains("Downloading") ||
+                                trimmed.contains("Writing video metadata") ||
+                                trimmed.contains("Writing thumbnail") {
+                            PersistentDebugLogger.shared.log("Processing", level: .info, details: trimmed)
+                        }
+                        
+                        // Skip debug output and verbose info
+                        else if !trimmed.contains("[debug]") && 
+                                !trimmed.contains("frame=") && 
+                                !trimmed.contains("size=") &&
+                                !trimmed.contains("time=") &&
+                                !trimmed.contains("bitrate=") &&
+                                !trimmed.contains("speed=") {
+                            // Skip other status messages for performance
                         }
                     }
                 }
             }
         }
         
-        // Read stderr (may contain debug info, not just errors)
+        // Read stderr with smart filtering
         errorPipe.fileHandleForReading.readabilityHandler = { handle in
             let data = handle.availableData
             guard !data.isEmpty else { return }
@@ -989,15 +1115,8 @@ class YTDLPService {
                 for line in error.components(separatedBy: .newlines) {
                     let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
                     if !trimmed.isEmpty {
-                        // Log ALL stderr output (including ffmpeg output)
-                        if trimmed.contains("ffmpeg") || trimmed.contains("frame=") || trimmed.contains("size=") {
-                            // FFmpeg progress output
-                            PersistentDebugLogger.shared.log("ffmpeg", level: .command, details: trimmed)
-                        } else if trimmed.contains("[debug]") {
-                            PersistentDebugLogger.shared.log("Debug", level: .info, details: trimmed)
-                        } else if trimmed.contains("WARNING") {
-                            PersistentDebugLogger.shared.log("Warning", level: .warning, details: trimmed)
-                        } else if trimmed.contains("ERROR") || trimmed.contains("error:") {
+                        // Always log errors
+                        if trimmed.contains("ERROR") || trimmed.contains("error:") {
                             PersistentDebugLogger.shared.log("Error", level: .error, details: trimmed)
                             
                             // Check for format not available error
@@ -1009,10 +1128,39 @@ class YTDLPService {
                                     await self.handleFormatError(for: downloadTask, url: url, outputPath: outputPath)
                                 }
                             }
-                        } else {
-                            // Default to command level for visibility
-                            PersistentDebugLogger.shared.log("Process", level: .command, details: trimmed)
                         }
+                        // Always log warnings
+                        else if trimmed.contains("WARNING") {
+                            PersistentDebugLogger.shared.log("Warning", level: .warning, details: trimmed)
+                        }
+                        // Filter debug output - only log important debug messages
+                        else if trimmed.contains("[debug]") {
+                            // Skip all debug output for performance
+                        }
+                        // Skip ffmpeg frame-by-frame progress
+                        else if trimmed.contains("frame=") || 
+                                trimmed.contains("size=") || 
+                                trimmed.contains("time=") ||
+                                trimmed.contains("bitrate=") ||
+                                trimmed.contains("speed=") {
+                            // Skip verbose ffmpeg output
+                        }
+                        // Log other potentially important stderr output
+                        else if trimmed.contains("ffmpeg") {
+                            // Only log significant ffmpeg events
+                            if trimmed.contains("Output") || 
+                               trimmed.contains("Input") ||
+                               trimmed.contains("Stream mapping") {
+                                PersistentDebugLogger.shared.log("FFmpeg", level: .info, details: trimmed)
+                            }
+                        }
+                        else if trimmed.contains("http") || trimmed.contains("https") {
+                            // Skip verbose HTTP traffic unless it's an error
+                            if trimmed.contains("403") || trimmed.contains("404") || trimmed.contains("500") {
+                                PersistentDebugLogger.shared.log("HTTP Error", level: .warning, details: trimmed)
+                            }
+                        }
+                        // Skip other output for performance
                     }
                 }
             }
@@ -1598,6 +1746,116 @@ class YTDLPService {
                 downloadTask.downloadStatus = "Downloading"
             }
         }
+    }
+    
+    // MARK: - Auto-increment filename helper
+    
+    /// Get the actual filename that yt-dlp will use for a given URL and template
+    private func getActualFilename(url: String, template: String) async -> String? {
+        let ytdlpPath = try? getYTDLPPath()
+        guard let ytdlpPath = ytdlpPath else { return nil }
+        
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: ytdlpPath)
+        
+        // Use --print to get the filename without downloading
+        var args = [
+            "--print", "filename",
+            "-o", template,
+            "--no-playlist"
+        ]
+        
+        // Add cookie support if configured
+        switch preferences.cookieSource {
+        case "safari":
+            args.append(contentsOf: ["--cookies-from-browser", "safari"])
+        case "chrome":
+            args.append(contentsOf: ["--cookies-from-browser", "chrome"])
+        case "brave":
+            args.append(contentsOf: ["--cookies-from-browser", "brave"])
+        case "firefox":
+            args.append(contentsOf: ["--cookies-from-browser", "firefox:*.youtube.com,*.googlevideo.com"])
+        case "edge":
+            args.append(contentsOf: ["--cookies-from-browser", "edge"])
+        case "file":
+            if let cookiePath = UserDefaults.standard.string(forKey: "cookieFilePath"),
+               let validatedPath = InputValidator.validateCookiePath(cookiePath) {
+                args.append(contentsOf: ["--cookies", validatedPath])
+            }
+        default:
+            break
+        }
+        
+        args.append(url)
+        process.arguments = args
+        
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = Pipe() // Suppress errors
+        
+        do {
+            try process.run()
+            process.waitUntilExit()
+            
+            if process.terminationStatus == 0 {
+                let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                if let output = String(data: data, encoding: .utf8) {
+                    return output.trimmingCharacters(in: .whitespacesAndNewlines)
+                }
+            }
+        } catch {
+            PersistentDebugLogger.shared.log("Failed to get filename", level: .warning, details: error.localizedDescription)
+        }
+        
+        return nil
+    }
+    
+    /// Check if file exists and get an incremented version if needed
+    private func getIncrementedFilePath(_ basePath: String) -> String {
+        // If the file doesn't exist, return the original path
+        if !FileManager.default.fileExists(atPath: basePath) {
+            return basePath
+        }
+        
+        // File exists, need to increment
+        let url = URL(fileURLWithPath: basePath)
+        let directory = url.deletingLastPathComponent()
+        let nameWithoutExt = url.deletingPathExtension().lastPathComponent
+        let ext = url.pathExtension
+        
+        // Try incremented versions up to maxIncrementAttempts
+        for i in 1...preferences.maxIncrementAttempts {
+            let newName = "\(nameWithoutExt) (\(i))"
+            let newPath = directory
+                .appendingPathComponent(newName)
+                .appendingPathExtension(ext)
+                .path
+            
+            if !FileManager.default.fileExists(atPath: newPath) {
+                PersistentDebugLogger.shared.log(
+                    "Auto-increment found available name", 
+                    level: .info, 
+                    details: "Using: \(newName).\(ext)"
+                )
+                return newPath
+            }
+        }
+        
+        // If we've exhausted all attempts, use timestamp
+        let timestamp = Int(Date().timeIntervalSince1970)
+        let finalName = "\(nameWithoutExt)_\(timestamp)"
+        let finalPath = directory
+            .appendingPathComponent(finalName)
+            .appendingPathExtension(ext)
+            .path
+        
+        PersistentDebugLogger.shared.log(
+            "Auto-increment using timestamp", 
+            level: .info, 
+            details: "Using: \(finalName).\(ext)"
+        )
+        
+        return finalPath
     }
     
     // MARK: - Security Helper Methods

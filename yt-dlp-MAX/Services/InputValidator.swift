@@ -43,14 +43,15 @@ class InputValidator {
             PersistentDebugLogger.shared.log("Warning: URL points to private/local host", level: .warning)
         }
         
-        // Remove shell special characters that might cause issues
-        let shellSpecialChars = CharacterSet(charactersIn: ";|&$`\\")
-        let components = cleaned.components(separatedBy: shellSpecialChars)
+        // Check for actually dangerous shell injection attempts
+        // Ampersands (&) are safe in URLs and commonly used for parameters
+        let dangerousChars = CharacterSet(charactersIn: ";|$`\\")
+        let components = cleaned.components(separatedBy: dangerousChars)
         
-        // If the URL was split by special characters, it's suspicious
+        // If the URL was split by dangerous characters, it's suspicious
         if components.count > 1 {
-            PersistentDebugLogger.shared.log("URL contains shell special characters", level: .warning)
-            // Return the first component only (before any special char)
+            PersistentDebugLogger.shared.log("URL contains potentially dangerous shell characters", level: .warning)
+            // Return the first component only (before any dangerous char)
             return components.first
         }
         
@@ -102,7 +103,7 @@ class InputValidator {
             (":", "_"),      // Problematic on Windows
             (";", "_"),      // Shell command separator
             ("|", "_"),      // Shell pipe
-            ("&", "_"),      // Shell background
+            ("&", "and"),    // Ampersand (not a shell issue in filenames)
             ("$", "_"),      // Shell variable
             ("`", "_"),      // Shell command substitution
             ("\"", "_"),     // Quote

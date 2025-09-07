@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 struct ErrorMessageFormatter {
     
@@ -6,6 +7,8 @@ struct ErrorMessageFormatter {
         let message: String
         let hint: String?
         let recoveryOptions: [String]
+        let showReportButton: Bool
+        let showOnboardingButton: Bool
     }
     
     // Convert technical errors to user-friendly messages with hints
@@ -21,7 +24,9 @@ struct ErrorMessageFormatter {
                     "Check your internet connection",
                     "Try again in a few moments",
                     "Check if the website is accessible in your browser"
-                ]
+                ],
+                showReportButton: false,
+                showOnboardingButton: false
             )
         }
         
@@ -34,7 +39,9 @@ struct ErrorMessageFormatter {
                     "Check folder permissions in Finder",
                     "Choose a different download location in Preferences",
                     "Ensure the app has Full Disk Access in System Settings"
-                ]
+                ],
+                showReportButton: true,
+                showOnboardingButton: false
             )
         }
         
@@ -46,7 +53,9 @@ struct ErrorMessageFormatter {
                     "Verify the download folder exists",
                     "Check if the file was moved or deleted",
                     "Reset download location in Preferences"
-                ]
+                ],
+                showReportButton: false,
+                showOnboardingButton: false
             )
         }
         
@@ -58,7 +67,9 @@ struct ErrorMessageFormatter {
                     "Free up disk space",
                     "Choose a different download location",
                     "Delete completed downloads you no longer need"
-                ]
+                ],
+                showReportButton: false,
+                showOnboardingButton: false
             )
         }
         
@@ -71,7 +82,9 @@ struct ErrorMessageFormatter {
                     "Try refreshing the video metadata",
                     "Check if the video is still available",
                     "Update yt-dlp using: brew upgrade yt-dlp"
-                ]
+                ],
+                showReportButton: true,
+                showOnboardingButton: false
             )
         }
         
@@ -83,7 +96,9 @@ struct ErrorMessageFormatter {
                     "Verify the playlist is public",
                     "Try importing individual videos instead",
                     "Check if you need to be logged in"
-                ]
+                ],
+                showReportButton: false,
+                showOnboardingButton: false
             )
         }
         
@@ -95,7 +110,9 @@ struct ErrorMessageFormatter {
                     "Try a different quality setting",
                     "Use 'Best Available' format option",
                     "Check if the video has the requested resolution"
-                ]
+                ],
+                showReportButton: false,
+                showOnboardingButton: false
             )
         }
         
@@ -104,22 +121,26 @@ struct ErrorMessageFormatter {
                 message: "Video processing failed",
                 hint: "FFmpeg is required for merging video and audio",
                 recoveryOptions: [
-                    "Install ffmpeg: brew install ffmpeg",
-                    "Verify ffmpeg is in your PATH",
+                    "Click 'Setup' to install ffmpeg automatically",
+                    "Or install manually: brew install ffmpeg",
                     "Try downloading audio-only or video-only"
-                ]
+                ],
+                showReportButton: false,
+                showOnboardingButton: true
             )
         }
         
         if errorString.contains("yt-dlp") || errorString.contains("youtube-dl") {
             return ErrorInfo(
-                message: "Download tool not found",
-                hint: "yt-dlp is required for downloading",
+                message: "Video downloader not installed",
+                hint: "Fetcha needs yt-dlp to download videos",
                 recoveryOptions: [
-                    "Install yt-dlp: brew install yt-dlp",
-                    "Check if yt-dlp is in /usr/local/bin or /opt/homebrew/bin",
-                    "Restart the app after installation"
-                ]
+                    "Click 'Setup' to install automatically",
+                    "Or install manually: brew install yt-dlp",
+                    "Check our setup guide for help"
+                ],
+                showReportButton: false,
+                showOnboardingButton: true
             )
         }
         
@@ -129,10 +150,12 @@ struct ErrorMessageFormatter {
                 message: "Authentication required",
                 hint: "This video requires login credentials",
                 recoveryOptions: [
-                    "Export cookies from your browser",
+                    "Go to Preferences to set up browser cookies",
                     "Check if the video is behind a paywall",
                     "Verify your account has access to this content"
-                ]
+                ],
+                showReportButton: false,
+                showOnboardingButton: false
             )
         }
         
@@ -143,9 +166,11 @@ struct ErrorMessageFormatter {
                 hint: "This video has viewing restrictions",
                 recoveryOptions: [
                     "Sign in with an account that has access",
-                    "Export browser cookies if you're logged in",
+                    "Set up browser cookies in Preferences",
                     "Check if the video is age-restricted"
-                ]
+                ],
+                showReportButton: false,
+                showOnboardingButton: false
             )
         }
         
@@ -158,7 +183,9 @@ struct ErrorMessageFormatter {
                     "Check your internet connection",
                     "Update manually: brew upgrade yt-dlp",
                     "Try again later"
-                ]
+                ],
+                showReportButton: false,
+                showOnboardingButton: false
             )
         }
         
@@ -170,7 +197,9 @@ struct ErrorMessageFormatter {
                 "Try again",
                 "Check the Debug Console for details",
                 "Report this issue if it persists"
-            ]
+            ],
+            showReportButton: true,
+            showOnboardingButton: false
         )
     }
     

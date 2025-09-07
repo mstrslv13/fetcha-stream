@@ -86,7 +86,7 @@ struct ContentView: View {
                         resizeWindowForPanels(showHistory: showHistoryPanel, showDetails: showDetailsPanel)
                     }
                 }) {
-                    Image(systemName: showHistoryPanel ? "sidebar.left.filled" : "sidebar.left")
+                    Image(systemName: showHistoryPanel ? "sidebar.left" : "sidebar.left")
                         .font(.system(size: 14))
                         .foregroundColor(.secondary)
                         .frame(width: 24, height: 24)
@@ -275,7 +275,7 @@ struct ContentView: View {
                         resizeWindowForPanels(showHistory: showHistoryPanel, showDetails: showDetailsPanel)
                     }
                 }) {
-                    Image(systemName: showDetailsPanel ? "sidebar.right.filled" : "sidebar.right")
+                    Image(systemName: showDetailsPanel ? "sidebar.right" : "sidebar.right")
                         .font(.system(size: 14))
                         .foregroundColor(.secondary)
                         .frame(width: 24, height: 24)

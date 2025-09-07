@@ -1,43 +1,76 @@
-GNU GENERAL PUBLIC LICENSE
-Version 3, 29 June 2007
+FETCHA STREAM SOFTWARE LICENSE AGREEMENT
+Version 1.1.1, September 2025
 
-Copyright (C) 2025 fetcha.stream
+Copyright (c) 2025 William Azada All rights reserved.
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
+DEFINITIONS:
+- "Software" refers to Fetcha Stream and all associated code, documentation, and assets
+- "Commercial Use" means any use of the Software for commercial advantage or monetary compensation
+- "Non-Commercial Use" means personal, educational, or non-profit use without monetary compensation
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+LICENSE GRANT:
 
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-================================================================================
-BUNDLED COMPONENTS AND THEIR LICENSES
-================================================================================
-
-This software includes the following third-party components:
-
-1. FFmpeg (https://ffmpeg.org/)
-   Licensed under GPL v2+ due to inclusion of GPL-licensed codecs
-   - Includes libx264 (GPL v2+)
-   - Includes libx265 (GPL v2+)
-   Source code: https://github.com/FFmpeg/FFmpeg
+1. NON-COMMERCIAL USE (FREE LICENSE):
+   Permission is hereby granted, free of charge, to any person obtaining a copy of this
+   Software to use, copy, modify, and distribute the Software for Non-Commercial Use only,
+   subject to the following conditions:
    
-2. yt-dlp (https://github.com/yt-dlp/yt-dlp)
-   Licensed under The Unlicense
-   Source code: https://github.com/yt-dlp/yt-dlp
+   - The above copyright notice and this license shall be included in all copies
+   - Attribution must be given to the original author (William Azada)
+   - Any modifications must be clearly marked as such
+   - The Software may not be used for any Commercial Use without explicit permission
 
-IMPORTANT LICENSING NOTICE:
-This application bundles FFmpeg binaries that were compiled with GPL-licensed 
-components (libx264, libx265). As a result, the entire distribution of this 
-application must comply with GPL v3 terms. The GPL requires that the complete 
-source code be made available to all users.
+2. COMMERCIAL USE (PAID LICENSE REQUIRED):
+   ANY Commercial Use of this Software requires a separate commercial license agreement.
+   This includes but is not limited to:
+   
+   - Using the Software in a commercial product or service
+   - Selling the Software or derivative works
+   - Using the Software to provide services for which you charge fees
+   - Including the Software in a product that generates revenue
+   - Using the Software in a business environment for business purposes
+   
+   To obtain a commercial license, contact: github.com/mstrslv13
+   Commercial licenses are subject to licensing fees as determined by the copyright holder.
 
-FFmpeg Attribution:
-This software uses code of FFmpeg licensed under the GPLv2+ and its source 
-can be downloaded from https://github.com/FFmpeg/FFmpeg
+3. RESTRICTIONS:
+   - You may NOT use this Software for Commercial Use without a paid license
+   - You may NOT remove or alter any proprietary notices or labels
+   - You may NOT claim original authorship of the Software
+   - You may NOT sublicense Commercial Use rights to third parties
+
+4. DERIVATIVE WORKS:
+   - Derivative works based on this Software inherit these same license terms
+   - Any derivative work used for Commercial Use requires a commercial license
+   - Non-Commercial derivative works must be clearly marked and attributed
+
+5. CONTRIBUTIONS:
+   Any contributions, pull requests, or modifications submitted to the project
+   automatically grant the copyright holder unlimited rights to use, modify,
+   and relicense the contributed code.
+
+6. WARRANTY DISCLAIMER:
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+   INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+   PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+   HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+   OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+7. TERMINATION:
+   This license automatically terminates if you violate any of its terms.
+   Upon termination, you must destroy all copies of the Software in your possession.
+
+8. GOVERNING LAW:
+   This license shall be governed by the laws of the jurisdiction in which the
+   copyright holder resides.
+
+For commercial licensing inquiries, please contact:
+github.com/mstrslv13
+
+---
+This is proprietary software. Unauthorized commercial use is strictly prohibited
+and may result in legal action.
+
+NOTE: This software requires separate installation of yt-dlp and ffmpeg,
+which are governed by their own respective licenses.

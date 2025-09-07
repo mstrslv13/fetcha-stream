@@ -324,6 +324,38 @@ struct NamingPreferencesView: View {
                 .padding(.leading, 10)
             }
             
+            // Duplicate File Handling
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Duplicate File Handling")
+                    .font(.headline)
+                    .padding(.top, 10)
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    Toggle("Auto-increment filenames", isOn: $preferences.autoIncrementFilenames)
+                        .help("Automatically append numbers to filenames when duplicates exist")
+                    
+                    if preferences.autoIncrementFilenames {
+                        HStack {
+                            Text("Max attempts:")
+                            TextField("100", value: $preferences.maxIncrementAttempts, format: .number)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .frame(width: 60)
+                                .help("Maximum number of increment attempts (1-999)")
+                            
+                            Text("times")
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.leading, 20)
+                    }
+                    
+                    Text("When enabled, files will be saved as 'filename (1)', 'filename (2)', etc.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.leading, 20)
+                }
+                .padding(.leading, 10)
+            }
+            
             Spacer()
         }
         .padding(30)

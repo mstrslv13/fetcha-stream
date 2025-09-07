@@ -7,9 +7,13 @@
 
 import SwiftUI
 import AppKit
+import Combine
 
-// App Delegate for dock menu support
+// App Delegate for dock menu support and onboarding
 class AppDelegate: NSObject, NSApplicationDelegate {
+    private var onboardingWindow: NSWindow?
+    private var cancellables = Set<AnyCancellable>()
+    
     func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
         return DockMenuService.shared.getDockMenu()
     }
@@ -18,114 +22,70 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Initialize dock menu service
         _ = DockMenuService.shared
         
-        // Check for required dependencies
-        checkDependencies()
-    }
-    
-    private func checkDependencies() {
-        var missingDependencies: [String] = []
-        var warnings: [String] = []
-        
-        // Check for yt-dlp
-        let ytdlpPath = findYTDLP()
-        if ytdlpPath == nil {
-            missingDependencies.append("yt-dlp (required for downloading)")
+        // Check for onboarding needs
+        Task {
+            await checkOnboarding()
         }
-        
-        // Check for ffmpeg
-        let ffmpegPath = findFFmpeg()
-        if ffmpegPath == nil {
-            warnings.append("ffmpeg (optional but recommended for video processing)")
-        }
-        
-        // Show notifications if dependencies are missing
-        if !missingDependencies.isEmpty || !warnings.isEmpty {
-            DispatchQueue.main.async {
-                self.showDependencyAlert(missing: missingDependencies, warnings: warnings)
-            }
-        }
-    }
-    
-    // Use YTDLPService's centralized binary detection
-    private func findYTDLP() -> String? {
-        // This is a temporary wrapper - should migrate to use YTDLPService directly
-        let service = YTDLPService()
-        // Access the centralized finder through service
-        // Note: This requires making findBinary accessible or using the service methods
-        let possiblePaths = [
-            "/opt/homebrew/bin/yt-dlp",
-            "/usr/local/bin/yt-dlp",
-            "/usr/bin/yt-dlp",
-            Bundle.main.path(forResource: "yt-dlp", ofType: nil, inDirectory: "bin")
-        ].compactMap { $0 }
-        
-        for path in possiblePaths {
-            if FileManager.default.fileExists(atPath: path) {
-                return path
-            }
-        }
-        return nil
-    }
-    
-    private func findFFmpeg() -> String? {
-        // This is a temporary wrapper - should migrate to use YTDLPService directly
-        let possiblePaths = [
-            "/opt/homebrew/bin/ffmpeg",
-            "/usr/local/bin/ffmpeg",
-            "/usr/bin/ffmpeg",
-            Bundle.main.path(forResource: "ffmpeg", ofType: nil, inDirectory: "bin")
-        ].compactMap { $0 }
-        
-        for path in possiblePaths {
-            if FileManager.default.fileExists(atPath: path) {
-                return path
-            }
-        }
-        return nil
     }
     
     @MainActor
-    private func showDependencyAlert(missing: [String], warnings: [String]) {
-        let alert = NSAlert()
+    private func checkOnboarding() async {
+        let coordinator = OnboardingCoordinator.shared
+        await coordinator.checkIfOnboardingNeeded()
         
-        if !missing.isEmpty {
-            alert.messageText = "Missing Required Dependencies"
-            alert.alertStyle = .critical
-            alert.icon = NSImage(systemSymbolName: "xmark.octagon.fill", accessibilityDescription: nil)
-            
-            var message = "The following required dependencies are not installed:\n\n"
-            for dep in missing {
-                message += "• \(dep)\n"
-            }
-            message += "\nTo install yt-dlp, run:\nbrew install yt-dlp\n"
-            
-            if !warnings.isEmpty {
-                message += "\nOptional dependencies missing:\n"
-                for warning in warnings {
-                    message += "• \(warning)\n"
-                }
-                message += "\nTo install ffmpeg, run:\nbrew install ffmpeg"
-            }
-            
-            alert.informativeText = message
-            alert.addButton(withTitle: "OK")
-            
-        } else if !warnings.isEmpty {
-            alert.messageText = "Optional Dependencies Missing"
-            alert.alertStyle = .informational
-            alert.icon = NSImage(systemSymbolName: "info.circle.fill", accessibilityDescription: nil)
-            
-            var message = "The following optional dependencies are not installed:\n\n"
-            for warning in warnings {
-                message += "• \(warning)\n"
-            }
-            message += "\nTo install ffmpeg for better video processing, run:\nbrew install ffmpeg\n\nThe app will work without these but with limited features."
-            
-            alert.informativeText = message
-            alert.addButton(withTitle: "Continue")
+        if coordinator.isOnboardingRequired {
+            showOnboardingWindow()
         }
         
-        alert.runModal()
+        // Monitor onboarding state changes
+        coordinator.$isOnboardingRequired
+            .sink { [weak self] required in
+                Task { @MainActor in
+                    if !required {
+                        self?.onboardingWindow?.close()
+                        self?.onboardingWindow = nil
+                    }
+                }
+            }
+            .store(in: &cancellables)
+    }
+    
+    @MainActor
+    private func showOnboardingWindow() {
+        // Don't show if already visible
+        guard onboardingWindow == nil else { return }
+        
+        let onboardingView = OnboardingView()
+        
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 700, height: 500),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        
+        window.title = "Welcome to Fetcha"
+        window.contentView = NSHostingView(rootView: onboardingView)
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+        window.level = .floating // Keep on top during onboarding
+        
+        // Prevent closing if dependencies are missing
+        window.delegate = OnboardingWindowDelegate()
+        
+        self.onboardingWindow = window
+    }
+}
+
+// Window delegate to control onboarding window behavior
+class OnboardingWindowDelegate: NSObject, NSWindowDelegate {
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        // Only allow closing if onboarding is complete or not required
+        let coordinator = OnboardingCoordinator.shared
+        if coordinator.dependencies?.ytdlp.isInstalled == true {
+            return true // Allow closing if at least yt-dlp is installed
+        }
+        return !coordinator.isOnboardingRequired
     }
 }
 
@@ -134,14 +94,15 @@ struct yt_dlp_MAXApp: App {
     // ProcessManager removed - using ProcessExecutor instead
     @StateObject private var preferences = AppPreferences.shared
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @State private var preferencesWindow: NSWindow?
+    @State private var showingBugReport = false
     
     init() {
         // Process management handled by ProcessExecutor
         
         // Set the app icon (dock icon)
-        if let appIcon = NSImage(named: "AppIcon") {
-            NSApplication.shared.applicationIconImage = appIcon
-        }
+        // AppIcon is handled automatically by the asset catalog
+        // No need to set it manually
     }
     
     var body: some Scene {
@@ -164,14 +125,182 @@ struct yt_dlp_MAXApp: App {
                         }
                     }
                 }
+                .sheet(isPresented: $showingBugReport) {
+                    BugReportView()
+                        .frame(width: 600, height: 500)
+                }
         }
         .windowResizability(.contentSize)
         .commands {
+            // Fetcha Menu
             CommandGroup(replacing: .appInfo) {
                 Button("About Fetcha") {
                     NSApplication.showAboutWindow()
                 }
-                .keyboardShortcut("A", modifiers: [.command, .shift])
+                
+                Divider()
+                
+                Button("Preferences...") {
+                    openPreferencesWindow()
+                }
+                .keyboardShortcut(",", modifiers: .command)
+                
+                Divider()
+                
+                Button("Check for Updates...") {
+                    Task {
+                        await checkForUpdates()
+                    }
+                }
+            }
+            
+            // File Menu additions
+            CommandGroup(after: .newItem) {
+                Button("Import URLs from File...") {
+                    // FUTURE: Phase 2 - Batch import from text file
+                }
+                .keyboardShortcut("O", modifiers: .command)
+                
+                Divider()
+                
+                Button("Open Downloads Folder") {
+                    NSWorkspace.shared.open(URL(fileURLWithPath: preferences.resolvedDownloadPath))
+                }
+                .keyboardShortcut("D", modifiers: [.command, .shift])
+            }
+            
+            // View Menu
+            CommandMenu("View") {
+                Button("Show Download Queue") {
+                    // FUTURE: Phase 2 - Queue window
+                }
+                .keyboardShortcut("1", modifiers: .command)
+                
+                Button("Show Completed Downloads") {
+                    // FUTURE: Phase 2 - History window
+                }
+                .keyboardShortcut("2", modifiers: .command)
+                
+                Divider()
+                
+                Button("Toggle History Panel") {
+                    NotificationCenter.default.post(name: NSNotification.Name("ToggleHistoryPanel"), object: nil)
+                }
+                .keyboardShortcut("H", modifiers: .command)
+                
+                Button("Toggle Details Panel") {
+                    NotificationCenter.default.post(name: NSNotification.Name("ToggleDetailsPanel"), object: nil)
+                }
+                .keyboardShortcut("D", modifiers: .command)
+            }
+            
+            // Tools Menu
+            CommandMenu("Tools") {
+                Button("Check Dependencies...") {
+                    Task {
+                        await checkDependencies()
+                    }
+                }
+                
+                Button("Browser Integration Setup...") {
+                    // Show cookie permission settings
+                    openPreferencesWindow()
+                }
+                
+                Divider()
+                
+                Button("Clear Cache") {
+                    DependencyManager.shared.clearCache()
+                    PersistentDebugLogger.shared.clearLogs()
+                }
+                
+                Button("Export Debug Logs...") {
+                    exportDebugLogs()
+                }
+            }
+            
+            // Help Menu
+            CommandGroup(replacing: .help) {
+                Button("Fetcha Help") {
+                    NSWorkspace.shared.open(URL(string: "https://github.com/mstrslv13/fetcha-stream/wiki")!)
+                }
+                .keyboardShortcut("?", modifiers: .command)
+                
+                Button("Quick Start Guide") {
+                    NSWorkspace.shared.open(URL(string: "https://github.com/mstrslv13/fetcha-stream#quick-start")!)
+                }
+                
+                Divider()
+                
+                Button("Report a Bug...") {
+                    showingBugReport = true
+                }
+                
+                Button("Request a Feature...") {
+                    NSWorkspace.shared.open(URL(string: "https://github.com/mstrslv13/fetcha-stream/issues/new?template=feature_request.md")!)
+                }
+                
+                Divider()
+                
+                Button("View on GitHub") {
+                    NSWorkspace.shared.open(URL(string: "https://github.com/mstrslv13/fetcha-stream")!)
+                }
+            }
+        }
+    }
+    
+    // Helper functions
+    private func openPreferencesWindow() {
+        // Check if preferences window already exists and is visible
+        if let existingWindow = preferencesWindow, existingWindow.isVisible {
+            existingWindow.makeKeyAndOrderFront(nil)
+            return
+        }
+        
+        // Create new preferences window
+        let prefsView = PreferencesView()
+        let hostingController = NSHostingController(rootView: prefsView)
+        let window = NSWindow(contentViewController: hostingController)
+        window.title = "Preferences"
+        window.setContentSize(NSSize(width: 850, height: 700))
+        window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+        
+        // Store reference to window
+        preferencesWindow = window
+        
+        // Clean up reference when window closes
+        NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification,
+            object: window,
+            queue: .main
+        ) { _ in
+            self.preferencesWindow = nil
+        }
+    }
+    
+    private func checkForUpdates() async {
+        // FUTURE: Phase 3 - Auto-update functionality
+        PersistentDebugLogger.shared.log("Check for updates requested", level: .info)
+    }
+    
+    private func checkDependencies() async {
+        let coordinator = OnboardingCoordinator.shared
+        coordinator.dependencies = await coordinator.checkDependencies()
+        coordinator.currentStep = .dependencyCheck
+        coordinator.isOnboardingRequired = true
+    }
+    
+    private func exportDebugLogs() {
+        let savePanel = NSSavePanel()
+        savePanel.nameFieldStringValue = "fetcha-debug-\(Date().timeIntervalSince1970).log"
+        savePanel.allowedContentTypes = [.log]
+        
+        savePanel.begin { result in
+            if result == .OK, let url = savePanel.url {
+                let logs = PersistentDebugLogger.shared.getFormattedLogs()
+                try? logs.write(to: url, atomically: true, encoding: .utf8)
             }
         }
     }
