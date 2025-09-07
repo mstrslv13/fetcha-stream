@@ -389,14 +389,14 @@ struct QuickFixItemButton: View {
 
 // Extension to QueueItem for custom output path
 extension QueueItem {
-    private static var customOutputPathKey = "customOutputPath"
+    private static let customOutputPathKey = UnsafeRawPointer(UnsafePointer<UInt8>(bitPattern: "customOutputPath".hashValue)!)
     
     var customOutputPath: String? {
         get {
-            objc_getAssociatedObject(self, &Self.customOutputPathKey) as? String
+            objc_getAssociatedObject(self, Self.customOutputPathKey) as? String
         }
         set {
-            objc_setAssociatedObject(self, &Self.customOutputPathKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+            objc_setAssociatedObject(self, Self.customOutputPathKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         }
     }
 }

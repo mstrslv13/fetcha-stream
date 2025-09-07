@@ -9,7 +9,8 @@ class DownloadHistory: ObservableObject {
     private let historyFile: URL
     private let maxHistorySize = 10000  // Limit history to prevent unbounded growth
     
-    struct DownloadRecord: Codable, Hashable {
+    struct DownloadRecord: Codable, Hashable, Identifiable {
+        var id: String { videoId }
         let videoId: String
         let url: String
         let title: String

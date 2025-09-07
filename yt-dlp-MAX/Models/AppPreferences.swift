@@ -8,6 +8,7 @@ class AppPreferences: ObservableObject {
     @AppStorage("audioDownloadPath") var audioDownloadPath: String = ""
     @AppStorage("videoOnlyDownloadPath") var videoOnlyDownloadPath: String = ""
     @AppStorage("useSeparateLocations") var useSeparateLocations: Bool = false
+    @AppStorage("extractedAudioPath") var extractedAudioPath: String = ""
     @AppStorage("defaultVideoQuality") var defaultVideoQuality: String = "best"
     @AppStorage("downloadAudio") var downloadAudio: Bool = false
     @AppStorage("audioFormat") var audioFormat: String = "mp3"
@@ -100,6 +101,13 @@ class AppPreferences: ObservableObject {
             return resolvedDownloadPath
         }
         return NSString(string: videoOnlyDownloadPath).expandingTildeInPath
+    }
+    
+    var resolvedExtractedAudioPath: String {
+        if extractedAudioPath.isEmpty {
+            return resolvedDownloadPath
+        }
+        return NSString(string: extractedAudioPath).expandingTildeInPath
     }
     
     var resolvedFfmpegPath: String {

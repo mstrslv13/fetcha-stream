@@ -62,7 +62,8 @@ struct EnhancedQueueView: View {
         ScrollView {
             VStack(spacing: 1) {
                 ForEach(sortedItems, id: \.id) { item in
-                    QueueItemRow(item: item, queue: queue, isSelected: selectedItem?.id == item.id)
+                    let isSelected = selectedItem?.id == item.id
+                    QueueItemRow(item: item, queue: queue, isSelected: isSelected)
                         .onTapGesture {
                             selectedItem = item
                             // Notify that a queue item was selected

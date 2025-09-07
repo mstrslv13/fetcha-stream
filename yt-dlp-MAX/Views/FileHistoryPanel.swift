@@ -2,7 +2,7 @@ import SwiftUI
 
 struct FileHistoryPanel: View {
     @Binding var selectedItem: DownloadHistory.DownloadRecord?
-    @State private var selectedTab = "history"
+    // Debug tab removed - now only shows history
     @State private var searchText = ""
     @State private var filterType = "All"
     @StateObject private var downloadHistory = DownloadHistory.shared
@@ -49,21 +49,11 @@ struct FileHistoryPanel: View {
                 )
             }
             
-            // Header with tabs
-            HStack(spacing: 20) {
-                Button(action: { selectedTab = "history" }) {
-                    Text("History")
-                        .font(.system(size: 13, weight: selectedTab == "history" ? .medium : .regular))
-                        .foregroundColor(selectedTab == "history" ? .primary : .secondary)
-                }
-                .buttonStyle(.plain)
-                
-                Button(action: { selectedTab = "debug" }) {
-                    Text("Debug")
-                        .font(.system(size: 13, weight: selectedTab == "debug" ? .medium : .regular))
-                        .foregroundColor(selectedTab == "debug" ? .primary : .secondary)
-                }
-                .buttonStyle(.plain)
+            // Header
+            HStack {
+                Text("History")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(.primary)
                 
                 Spacer()
             }
@@ -97,12 +87,8 @@ struct FileHistoryPanel: View {
             
             Divider()
             
-            // Content based on selected tab
-            if selectedTab == "history" {
-                FileHistoryList(searchText: searchText, filterType: filterType, selectedItem: $selectedItem)
-            } else {
-                DebugLogsView()
-            }
+            // History list
+            FileHistoryList(searchText: searchText, filterType: filterType, selectedItem: $selectedItem)
         }
     }
 }
@@ -368,10 +354,4 @@ struct FileHistoryRow: View {
     }
 }
 
-struct DebugLogsView: View {
-    var body: some View {
-        EnhancedDebugConsole()
-    }
-}
-
-// DebugLogRow removed - now using SelectableDebugConsole for better text selection
+// Debug tab removed - now using DevToolsPanel at bottom of main window

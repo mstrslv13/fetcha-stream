@@ -2,14 +2,14 @@ import SwiftUI
 import AppKit
 
 struct VideoDetailsPanel: View {
-    let item: QueueDownloadTask?
+    let item: QueueItem?
     let historyItem: DownloadHistory.DownloadRecord?
     @State private var thumbnailImage: NSImage?
     @State private var verboseOutput: String = ""
     @State private var downloadStartTime: Date?
     @State private var totalDownloadTime: String = ""
     
-    init(item: QueueDownloadTask? = nil, historyItem: DownloadHistory.DownloadRecord? = nil) {
+    init(item: QueueItem? = nil, historyItem: DownloadHistory.DownloadRecord? = nil) {
         self.item = item
         self.historyItem = historyItem
     }
@@ -154,9 +154,7 @@ struct VideoDetailsPanel: View {
                                                     NSWorkspace.shared.activateFileViewerSelecting([actualPath])
                                                 }
                                             } else {
-                                                await MainActor.run {
-                                                    NSWorkspace.shared.open(path)
-                                                }
+                                                NSWorkspace.shared.open(path)
                                             }
                                         }
                                     }) {

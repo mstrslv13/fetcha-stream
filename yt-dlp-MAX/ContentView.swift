@@ -10,7 +10,6 @@ struct ContentView: View {
     @State private var videoInfo: VideoInfo?
     @State private var selectedFormat: VideoFormat?
     @State private var showingDebugView = false
-    @State private var showingPreferences = false
     @State private var lastClipboard = ""
     @State private var selectedQueueItem: QueueDownloadTask?
     @State private var selectedHistoryItem: DownloadHistory.DownloadRecord?
@@ -26,10 +25,13 @@ struct ContentView: View {
     @State private var rssURL = ""
     @State private var rssFeed: RSSFeedParser.RSSFeed?
     @State private var showingRSSPreview = false
+    @State private var showDevTools = false
+    @State private var showNotifications = false
     @StateObject private var downloadQueue = DownloadQueue()
     @StateObject private var preferences = AppPreferences.shared
     @StateObject private var downloadHistory = DownloadHistory.shared
     @StateObject private var debugLogger = PersistentDebugLogger.shared
+    @StateObject private var notificationCenter = AppNotificationCenter.shared
     
     private let ytdlpService = YTDLPService()
     // PERFORMANCE FIX: Changed from 0.5s to 2s and only active when auto-add is enabled
@@ -37,7 +39,9 @@ struct ContentView: View {
     @State private var timerCancellable: AnyCancellable?
     
     var body: some View {
-        HStack(spacing: 0) {
+        VStack(spacing: 0) {
+            // Main content area
+            HStack(spacing: 0) {
             // History/Debug panel on the left with smoother animation
             if showHistoryPanel {
                 FileHistoryPanel(selectedItem: $selectedHistoryItem)
@@ -200,16 +204,6 @@ struct ContentView: View {
                         .help("Import URLs")
                         .accessibilityLabel("Import Menu")
                         .accessibilityHint("Import URLs from various sources")
-                        
-                        Button(action: {
-                            showingPreferences = true
-                        }) {
-                            Image(systemName: "gearshape")
-                        }
-                        .buttonStyle(.plain)
-                        .help("Preferences")
-                        .accessibilityLabel("Open Preferences")
-                        .accessibilityHint("Opens the application preferences window")
                     }
                     
                     // Enhanced Progress Bar
@@ -302,15 +296,42 @@ struct ContentView: View {
                     .animation(.easeInOut(duration: 0.2), value: showDetailsPanel)
             }
         }
+            
+            // Dev Tools Panel (bottom)
+            DevToolsPanel(isExpanded: $showDevTools)
+                .animation(.easeInOut(duration: 0.2), value: showDevTools)
+            
+            // Status Bar (always visible at bottom)
+            StatusBar(
+                showDevTools: $showDevTools,
+                showNotifications: $showNotifications
+            )
+        }
         .frame(minWidth: {
             var width = 450  // Base width for main content
             if showHistoryPanel { width += Int(historyPanelWidth) }
             if showDetailsPanel { width += 350 }
             return CGFloat(width)
         }(), minHeight: 600)
+        .overlay(alignment: .bottomLeading) {
+            if showNotifications {
+                NotificationsPanel(isShowing: $showNotifications)
+                    .frame(width: 400, height: 500)
+                    .background(Color(NSColor.windowBackgroundColor))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 5)
+                    .offset(x: 60, y: -40) // Position above status bar, offset from left edge
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .leading).combined(with: .opacity),
+                        removal: .move(edge: .leading).combined(with: .opacity)
+                    ))
+                    .zIndex(999)
+            }
+        }
         .onAppear {
             // Only start clipboard monitoring if auto-add is enabled
             startClipboardMonitoring()
+            setupKeyboardShortcuts()
         }
         .onDisappear {
             stopClipboardMonitoring()
@@ -328,12 +349,6 @@ struct ContentView: View {
         //         autoAdjustPanelWidth()
         //     }
         // }
-        .onChange(of: showingPreferences) { oldValue, newValue in
-            if newValue {
-                openPreferencesWindow()
-                showingPreferences = false
-            }
-        }
         .onAppear {
             statusMessage = preferences.autoAddToQueue ? 
                 "Auto-queue enabled: Paste any URL to start downloading" : 
@@ -416,6 +431,25 @@ struct ContentView: View {
         case .cancel:
             statusMessage = "Cancelled"
             urlString = ""
+        }
+    }
+    
+    // MARK: - Keyboard Shortcuts
+    private func setupKeyboardShortcuts() {
+        NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            // Alt+Cmd+I for Dev Tools
+            if event.modifierFlags.contains([.option, .command]) && event.charactersIgnoringModifiers == "i" {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    showDevTools.toggle()
+                }
+                return nil
+            }
+            // Escape to close notifications
+            if event.keyCode == 53 && showNotifications {
+                showNotifications = false
+                return nil
+            }
+            return event
         }
     }
     

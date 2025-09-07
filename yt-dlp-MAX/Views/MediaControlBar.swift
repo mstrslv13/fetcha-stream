@@ -53,14 +53,16 @@ struct MediaControlBar: View {
     }
     
     var body: some View {
-        HStack(spacing: 16) {
+        let previousDisabled = !hasPrevious
+        
+        return HStack(spacing: 16) {
             // Previous button
             Button(action: previousFile) {
                 Image(systemName: "backward.fill")
                     .font(.system(size: 14))
             }
             .buttonStyle(.plain)
-            .disabled(!hasPrevious)
+            .disabled(previousDisabled)
             .help("Previous download")
             .keyboardShortcut(.leftArrow, modifiers: [.command])
             

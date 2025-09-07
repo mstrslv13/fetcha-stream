@@ -15,7 +15,7 @@ struct AboutWindow: View {
                 .font(.system(size: 36))
                 .fontWeight(.bold)
             
-            Text("Version 1.0")
+            Text("Version \(AppConstants.appVersion)")
                 .font(.system(size: 14))
                 .foregroundColor(.secondary)
             
@@ -87,7 +87,16 @@ struct AboutWindow: View {
 
 // Helper to open About window
 extension NSApplication {
+    private static var aboutWindow: NSWindow?
+    
     static func showAboutWindow() {
+        // Toggle window
+        if let existingWindow = aboutWindow, existingWindow.isVisible {
+            existingWindow.close()
+            aboutWindow = nil
+            return
+        }
+        
         let aboutView = AboutWindow()
         let hostingController = NSHostingController(rootView: aboutView)
         let window = NSWindow(contentViewController: hostingController)
@@ -95,5 +104,17 @@ extension NSApplication {
         window.styleMask = [.titled, .closable]
         window.center()
         window.makeKeyAndOrderFront(nil)
+        
+        // Store reference
+        aboutWindow = window
+        
+        // Clear reference when closed
+        NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification,
+            object: window,
+            queue: .main
+        ) { _ in
+            aboutWindow = nil
+        }
     }
 }

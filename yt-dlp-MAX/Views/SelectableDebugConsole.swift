@@ -29,10 +29,12 @@ struct SelectableDebugConsole: NSViewRepresentable {
             textView.isAutomaticSpellingCorrectionEnabled = false
             textView.delegate = context.coordinator
             
-            // Set up text container for better wrapping
-            textView.textContainer?.containerSize = CGSize(width: scrollView.frame.width, height: CGFloat.greatestFiniteMagnitude)
-            textView.textContainer?.widthTracksTextView = true
-            textView.textContainer?.lineBreakMode = .byWordWrapping
+            // Set up text container to prevent wrapping
+            textView.textContainer?.containerSize = CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+            textView.textContainer?.widthTracksTextView = false
+            textView.textContainer?.lineBreakMode = .byClipping
+            textView.isHorizontallyResizable = true
+            textView.maxSize = CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
             
             // Enable automatic text completion for better UX
             textView.isAutomaticTextCompletionEnabled = false
@@ -150,7 +152,9 @@ struct SelectableDebugConsole: NSViewRepresentable {
         func textViewDidChangeSelection(_ notification: Notification) {
             // Disable auto-scroll when user is selecting text
             if let textView = notification.object as? NSTextView {
-                parent.shouldAutoScroll = textView.selectedRange.length == 0
+                DispatchQueue.main.async {
+                    self.parent.shouldAutoScroll = textView.selectedRange.length == 0
+                }
             }
         }
         

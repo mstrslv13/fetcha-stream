@@ -12,6 +12,7 @@ import Combine
 // App Delegate for dock menu support and onboarding
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var onboardingWindow: NSWindow?
+    private var onboardingWindowDelegate: OnboardingWindowDelegate?
     private var cancellables = Set<AnyCancellable>()
     
     func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
@@ -71,7 +72,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.level = .floating // Keep on top during onboarding
         
         // Prevent closing if dependencies are missing
-        window.delegate = OnboardingWindowDelegate()
+        self.onboardingWindowDelegate = OnboardingWindowDelegate()
+        window.delegate = self.onboardingWindowDelegate
         
         self.onboardingWindow = window
     }

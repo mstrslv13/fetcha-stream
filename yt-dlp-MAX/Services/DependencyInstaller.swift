@@ -270,7 +270,7 @@ final class DependencyInstaller {
             DispatchQueue.main.async { [weak self] in
                 var error: NSDictionary?
                 if let scriptObject = NSAppleScript(source: script) {
-                    let result = scriptObject.executeAndReturnError(&error)
+                    _ = scriptObject.executeAndReturnError(&error)
                     
                     if let error = error {
                         let errorMessage = error["NSAppleScriptErrorMessage"] as? String ?? "Unknown error"

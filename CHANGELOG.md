@@ -2,6 +2,106 @@
 
 All notable changes to Fetcha Stream will be documented in this file.
 
+## [1.2.0] - 2025-09-07
+
+### 🎨 Major UI Overhaul & Notification System
+
+#### ✨ New Features
+
+##### Notification System
+- **Notification Center**: Non-modal, slide-in notification panel
+  - Positioned on left side near bell button for easy access
+  - Cookie import success/failure notifications
+  - Download completion and error notifications
+  - Update availability alerts
+  - Unread badge counter on bell icon
+  - Clear all functionality
+  - Smooth slide-in/out animations from left edge
+
+##### Developer Tools
+- **Enhanced Debug Console**: Professional bottom-sliding panel
+  - Proper log ordering (newest at bottom, auto-scroll)
+  - Advanced filtering: All, Error, Warn, Info, yt-dlp, ffmpeg
+  - Horizontal scrolling for long log lines
+  - Search functionality
+  - Export logs with expanded window (650px height)
+  - Copy all and clear functionality
+  
+- **Status Bar**: Always-visible bottom status bar
+  - Settings button (opens Preferences)
+  - Notifications bell with unread counter
+  - Version number (clickable for About/Updates)
+  - Dev Tools toggle (Alt+Cmd+I)
+  - Real-time status messages
+
+##### Cookie & Authentication
+- **Cookie Extraction Notifications**: Real-time feedback
+  - Success: "Safari cookies successfully imported! (X cookies)"
+  - Failure: Browser-specific error messages
+  - Warnings for partial extractions
+  - Verbose logging in debug console, user-friendly in notifications
+
+##### Audio Processing
+- **Audio Extraction Settings**: Enhanced configuration
+  - Separate folder setting for extracted audio files
+  - Configurable in Preferences > Post-Processing
+  - Auto-creates directory if needed
+  - Maintains original video location if not configured
+
+##### Update Management
+- **Fetcha Update Check**: In Preferences > Updates
+  - Shows current Fetcha version
+  - Download button when update available
+  - Alongside yt-dlp and ffmpeg version checks
+
+#### 🔧 Improvements
+
+##### UI/UX
+- **Dynamic Version Management**: Centralized in AppConstants
+  - Version numbers update automatically across all views
+  - Single source of truth for app version
+  - Used in About, Preferences, and Status Bar
+
+- **Cleaner Interface**: Removed duplicate controls
+  - Removed gear button from main URL bar
+  - Settings only accessible via Status Bar
+  - Streamlined top toolbar
+
+- **Better Panel Management**: 
+  - Non-modal notification panel (can interact with app while open)
+  - Fixed About window singleton pattern
+  - Proper window management for all panels
+
+#### 🐛 Bug Fixes
+
+##### Critical Fixes
+- **Fixed App Closing Bug**: NotificationsPanel X button no longer closes entire app
+- **Fixed Log Order**: Console logs now properly show newest at bottom
+- **Fixed Text Cutoff**: Export logs window expanded to prevent text clipping
+- **Fixed Notification Toggle**: Bell button properly toggles panel open/closed
+- **Fixed Auto-Add**: Clipboard monitoring restored and working
+
+##### UI Fixes
+- Fixed thumbnail persistence in download history
+- Fixed window toggling for Settings and About
+- Fixed history panel sorting and display
+- Fixed missing file indicators (container, resolution, audio)
+- Fixed context menu in history panel
+- Fixed interface spacing issues
+- Fixed About page opening multiple windows
+
+#### 📋 Technical Changes
+- Implemented binding-based notification panel state management
+- Changed logs from `insert(at: 0)` to `append` for proper ordering
+- Improved StatusBar with visual feedback for active states
+- Enhanced cookie extraction parsing in YTDLPService
+- Added `extractedAudioPath` to AppPreferences
+- Implemented proper window sizing for export views
+
+#### 🔄 Reverted Changes
+- Main interface reverted to v1.1.1 design per user request
+- Kept new improvements (dev console, status bar) while maintaining original layout
+
 ## [1.1.1] - 2025-09-07
 
 ### 🎉 Major Release - Enhanced User Experience & Professional Features

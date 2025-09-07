@@ -106,11 +106,11 @@ class PersistentDebugLogger: ObservableObject {
                 details: details
             )
             
-            self.logs.insert(log, at: 0)
+            self.logs.append(log)
             
             // Keep only recent logs in memory
             if self.logs.count > self.maxLogs {
-                self.logs = Array(self.logs.prefix(self.maxLogs))
+                self.logs = Array(self.logs.suffix(self.maxLogs))
             }
             
             // Save to disk asynchronously

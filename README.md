@@ -6,7 +6,7 @@ Fetch streaming media as easy as CMD+C! Simple, modern and powerful. Download st
 
 ![macOS](https://img.shields.io/badge/macOS-15.0%2B-blue)
 ![Swift](https://img.shields.io/badge/Swift-5.0-orange)
-![Version](https://img.shields.io/badge/version-1.1.1-green)
+![Version](https://img.shields.io/badge/version-1.2.0-green)
 ![License](https://img.shields.io/badge/license-Commercial-red)
 
 Built with Swift and SwiftUI, Fetcha provides a beautiful native interface for yt-dlp with browser cookie support and advanced features.  The app follows the VLC model: simple for beginners, powerful when needed.
@@ -26,12 +26,16 @@ Whether you're saving tutorials for offline viewing, archiving content, or build
 - 🖼️ **Post-processing** - Extract audio files automatically in wav, mp3, flac, m4a, ogg, and opus formats
 - ⚡ **Optimized performance** - Native SwiftUI, minimal CPU and memory usage
 
-### New in v1.1.1
-- 🚀 **Automated Setup** - One-click installation of all dependencies
-- 🎯 **Smart Error Handling** - User-friendly error messages with quick fixes
-- 📁 **Duplicate File Management** - Automatic filename incrementing
-- 🐛 **Professional Debug Console** - Searchable, exportable logging system
-- 📋 **Enhanced Menu Bar** - Quick access to all features and tools
+### New in v1.2.0
+- 🔔 **Notification Center** - In-app notifications with cookie import status, errors, and updates
+- 🐛 **Enhanced Debug Console** - Bottom panel with filters, proper log ordering (newest at bottom)
+- 📊 **Status Bar** - Quick access to settings, notifications, version info, and dev tools
+- 🍪 **Cookie Status Notifications** - Real-time feedback on browser cookie extraction
+- 🎵 **Audio Extraction Settings** - Configure separate folder for extracted audio files
+- 🔄 **Dynamic Version Management** - Version numbers update automatically across the app
+- 📤 **Improved Log Export** - Larger export window to prevent text cutoff
+- 🎯 **Non-Modal Notifications** - Interact with the app while notifications panel is open
+- ✨ **UI Improvements** - Cleaner interface with removed duplicate controls
 
 ## Installation
 

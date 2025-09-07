@@ -469,6 +469,34 @@ struct PostProcessingPreferencesView: View {
                                 // Keep Video File
                                 Toggle("Keep video file after extraction", isOn: $preferences.keepVideoAfterExtraction)
                                     .help("Preserve the original video file alongside the extracted audio")
+                                
+                                // Extracted Audio Folder
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Extracted Audio Folder:")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    
+                                    HStack {
+                                        TextField("Same as video (default)", text: $preferences.extractedAudioPath)
+                                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                                            .frame(width: 280)
+                                            .help("Leave empty to save in the same folder as the video")
+                                        
+                                        Button("Choose...") {
+                                            let openPanel = NSOpenPanel()
+                                            openPanel.canChooseDirectories = true
+                                            openPanel.canChooseFiles = false
+                                            openPanel.allowsMultipleSelection = false
+                                            openPanel.message = "Select folder for extracted audio files"
+                                            
+                                            if openPanel.runModal() == .OK {
+                                                if let url = openPanel.url {
+                                                    preferences.extractedAudioPath = url.path
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             }
                             .padding(.leading, 20)
                         }
@@ -596,6 +624,8 @@ struct UpdatePreferencesView: View {
     @State private var hasCheckedForUpdates = false
     @State private var ytdlpNeedsUpdate = false
     @State private var ffmpegNeedsUpdate = false
+    @State private var fetchaUpdateAvailable = false
+    @State private var fetchaUpdateURL = ""
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -607,6 +637,27 @@ struct UpdatePreferencesView: View {
             // Version Information
             GroupBox("Installed Versions") {
                 VStack(alignment: .leading, spacing: 12) {
+                    // Fetcha App Version
+                    HStack {
+                        Image(systemName: "app.badge")
+                            .foregroundColor(.secondary)
+                        Text("Fetcha:")
+                            .frame(width: 80, alignment: .leading)
+                        Text("v\(AppConstants.appVersion)")
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        if fetchaUpdateAvailable {
+                            Button("Download Update") {
+                                if let url = URL(string: fetchaUpdateURL) {
+                                    NSWorkspace.shared.open(url)
+                                }
+                            }
+                            .help("Download the latest version of Fetcha")
+                        }
+                    }
+                    
+                    Divider()
+                    
                     HStack {
                         Image(systemName: "arrow.down.circle")
                             .foregroundColor(.secondary)
@@ -984,7 +1035,7 @@ struct AboutView: View {
                 .font(.system(size: 38))
                 .fontWeight(.bold)
             
-            Text("Version 1.0")
+            Text("Version \(AppConstants.appVersion)")
                 .font(.system(size: 16))
                 .foregroundColor(.secondary)
             

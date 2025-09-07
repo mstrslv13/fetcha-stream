@@ -180,7 +180,7 @@ class YTDLPService {
         process.arguments = arguments
         
         // Log the full command for debugging
-        let fullCommand = "\(ytdlpPath) \(arguments.joined(separator: " "))"
+        _ = "\(ytdlpPath) \(arguments.joined(separator: " "))"
         // Verbose command logging removed for performance
         // PersistentDebugLogger.shared.log("Executing command", level: .command, details: fullCommand)
         
@@ -644,7 +644,7 @@ class YTDLPService {
                 return arg
             }
         } ?? []
-        let fullCommand = "\(ytdlpPath) \(safeArgs.joined(separator: " "))"
+        _ = "\(ytdlpPath) \(safeArgs.joined(separator: " "))"
         PersistentDebugLogger.shared.log("Fetching metadata", level: .info, details: "URL: \(sanitizedURL)")
         
         // Set up pipes for both output and errors
@@ -990,7 +990,7 @@ class YTDLPService {
                 return arg
             }
         }
-        let fullCommand = "\(ytdlpPath) \(safeArgs.joined(separator: " "))"
+        _ = "\(ytdlpPath) \(safeArgs.joined(separator: " "))"
         PersistentDebugLogger.shared.log("Starting download", level: .info, details: "URL: \(sanitizedURL)")
         
         // Set up environment to include common binary paths
@@ -1115,8 +1115,63 @@ class YTDLPService {
                 for line in error.components(separatedBy: .newlines) {
                     let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
                     if !trimmed.isEmpty {
+                        // Check for cookie extraction messages
+                        if trimmed.contains("Extracted") && trimmed.contains("cookies from") {
+                            // Parse cookie extraction success
+                            if let browserRange = trimmed.range(of: "cookies from "),
+                               let countRange = trimmed.range(of: "Extracted ") {
+                                let afterFrom = String(trimmed[browserRange.upperBound...])
+                                let browser = afterFrom.split(separator: " ").first.map(String.init) ?? "browser"
+                                let beforeCookies = String(trimmed[countRange.upperBound..<trimmed.range(of: " cookies")!.lowerBound])
+                                let count = Int(beforeCookies)
+                                
+                                PersistentDebugLogger.shared.log("Cookie extraction success", level: .success, details: trimmed)
+                                Task { @MainActor in
+                                    AppNotificationCenter.shared.notifyCookieSuccess(browser: browser.capitalized, count: count)
+                                }
+                            }
+                        } else if trimmed.contains("unable to extract cookies") || trimmed.contains("Failed to extract cookies") {
+                            // Parse cookie extraction failure
+                            var browser = "browser"
+                            if trimmed.contains("from ") {
+                                if let range = trimmed.range(of: "from ") {
+                                    let afterFrom = String(trimmed[range.upperBound...])
+                                    browser = afterFrom.split(separator: " ").first.map(String.init) ?? "browser"
+                                }
+                            }
+                            
+                            var reason: String? = nil
+                            if trimmed.contains("browser is not installed") {
+                                reason = "\(browser.capitalized) is not installed on this system"
+                            } else if trimmed.contains("could not find") {
+                                reason = "\(browser.capitalized) profile not found"
+                            } else if trimmed.contains("permission") {
+                                reason = "Permission denied accessing \(browser.capitalized) cookies"
+                            } else if trimmed.contains("close") || trimmed.contains("running") {
+                                reason = "Please close \(browser.capitalized) and try again"
+                            }
+                            
+                            PersistentDebugLogger.shared.log("Cookie extraction failed", level: .error, details: trimmed)
+                            Task { @MainActor in
+                                AppNotificationCenter.shared.notifyCookieFailure(browser: browser.capitalized, reason: reason)
+                            }
+                        } else if trimmed.contains("cookie") && trimmed.contains("WARNING") {
+                            // Cookie-related warnings
+                            var browser = "browser"
+                            if trimmed.contains("from ") {
+                                if let range = trimmed.range(of: "from ") {
+                                    let afterFrom = String(trimmed[range.upperBound...])
+                                    browser = afterFrom.split(separator: " ").first.map(String.init) ?? "browser"
+                                }
+                            }
+                            
+                            PersistentDebugLogger.shared.log("Cookie warning", level: .warning, details: trimmed)
+                            Task { @MainActor in
+                                AppNotificationCenter.shared.notifyCookieWarning(browser: browser.capitalized, message: trimmed)
+                            }
+                        }
                         // Always log errors
-                        if trimmed.contains("ERROR") || trimmed.contains("error:") {
+                        else if trimmed.contains("ERROR") || trimmed.contains("error:") {
                             PersistentDebugLogger.shared.log("Error", level: .error, details: trimmed)
                             
                             // Check for format not available error
@@ -1607,7 +1662,15 @@ class YTDLPService {
         
         // Build output filename with audio extension
         let outputFilename = filePath.deletingPathExtension().lastPathComponent + "." + preferences.audioExtractionFormat
-        let outputPath = filePath.deletingLastPathComponent().appendingPathComponent(outputFilename)
+        // Use extracted audio path if configured, otherwise use same directory as video
+        let outputDir = preferences.extractedAudioPath.isEmpty ? 
+            filePath.deletingLastPathComponent() : 
+            URL(fileURLWithPath: preferences.resolvedExtractedAudioPath)
+        
+        // Ensure directory exists
+        try? FileManager.default.createDirectory(at: outputDir, withIntermediateDirectories: true)
+        
+        let outputPath = outputDir.appendingPathComponent(outputFilename)
         
         var args = ["-i", filePath.path]
         
@@ -1929,7 +1992,7 @@ enum YTDLPError: LocalizedError {
         switch self {
         case .ytdlpNotFound:
             return "Download tool not found. Please ensure yt-dlp is installed."
-        case .invalidJSON(let _):
+        case .invalidJSON:
             return "Unable to process video information. The video may be unavailable or restricted."
         case .processFailed(let details):
             // Check for common error patterns
