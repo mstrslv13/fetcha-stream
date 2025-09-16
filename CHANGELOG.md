@@ -2,23 +2,13 @@
 
 All notable changes to Fetcha Stream will be documented in this file.
 
-## [Rollback Notice] - 2025-09-09
+## 2025-09-115
 
-### v1.3.0 Attempt Rolled Back
-- The v1.3.0 UI overhaul has been rolled back due to critical stability issues
-- Features will be re-implemented incrementally through v1.2.x releases  
-- See RELEASE_PLAN.md for the incremental release schedule
-- Failed attempt preserved in branch: `failed-1.3-attempt`
-
-### Planned Incremental Releases
-- **v1.2.1**: Onboarding & Detection improvements
-- **v1.2.2**: Theme Management
-- **v1.2.3**: Performance Monitoring
-- **v1.2.4**: Enhanced DevTools
-- **v1.2.5**: Thumbnail Caching
-- **v1.2.6**: Enhanced Queue View
-- **v1.2.7**: History Panel
-- **v1.3.0**: Final feature-complete release
+**v1.2.1**: Onboarding & Detection improvements
+- Fixed problem with Onboarding buttons not appearing
+- Added Run Setup Assistant to File Menu
+- Fixed issue where yt-dlp was not detecting
+- Fixed crashes after onboarding
 
 ## [1.2.0] - 2025-09-07 (Current Stable)
 
