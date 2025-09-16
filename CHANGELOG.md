@@ -2,7 +2,7 @@
 
 All notable changes to Fetcha Stream will be documented in this file.
 
-## 2025-09-115
+## 2025-09-15
 
 **v1.2.1**: Onboarding & Detection improvements
 - Fixed problem with Onboarding buttons not appearing
