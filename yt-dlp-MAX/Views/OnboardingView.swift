@@ -57,69 +57,68 @@ struct OnboardingView: View {
 
 struct WelcomeStepView: View {
     @ObservedObject var coordinator: OnboardingCoordinator
+    @Environment(\.dismiss) private var dismiss
     
     var body: some View {
-        VStack(spacing: 30) {
+        VStack(spacing: 20) {
             Spacer()
             
             // Use system icon or NSApp icon
             if let appIcon = NSApplication.shared.applicationIconImage {
                 Image(nsImage: appIcon)
                     .resizable()
-                    .frame(width: 128, height: 128)
-                    .cornerRadius(24)
+                    .frame(width: 100, height: 100)
+                    .cornerRadius(20)
             } else {
                 Image(systemName: "arrow.down.app.fill")
-                    .font(.system(size: 80))
+                    .font(.system(size: 70))
                     .foregroundColor(.accentColor)
-                    .frame(width: 128, height: 128)
+                    .frame(width: 100, height: 100)
             }
             
             Text("Welcome to Fetcha")
                 .font(.largeTitle)
                 .fontWeight(.bold)
             
-            Text("Let's set up your video downloading powerhouse")
+            Text("Quick setup to get you started")
                 .font(.title3)
                 .foregroundColor(.secondary)
             
-            VStack(alignment: .leading, spacing: 15) {
+            VStack(alignment: .leading, spacing: 12) {
+                FeatureRow(
+                    icon: "checkmark.circle.fill",
+                    title: "Check dependencies",
+                    description: "Verify yt-dlp and ffmpeg installation"
+                )
+                
                 FeatureRow(
                     icon: "arrow.down.circle.fill",
-                    title: "Download from 1000+ sites",
-                    description: "YouTube, Twitter, Vimeo, and more"
+                    title: "Install if needed",
+                    description: "Automatic setup via Homebrew"
                 )
                 
                 FeatureRow(
-                    icon: "film.fill",
-                    title: "Smart format selection",
-                    description: "Get the best quality automatically"
-                )
-                
-                FeatureRow(
-                    icon: "square.stack.3d.up.fill",
-                    title: "Batch downloads",
-                    description: "Queue multiple videos effortlessly"
+                    icon: "play.circle.fill",
+                    title: "Start downloading",
+                    description: "Begin using Fetcha immediately"
                 )
             }
-            .padding(.horizontal, 80)
+            .padding(.horizontal, 60)
             
             Spacer()
             
-            HStack {
-                Spacer()
-                
-                Button("Get Started") {
+            NavigationButtonBar(
+                coordinator: coordinator,
+                showBack: false,
+                showCancel: true,
+                nextTitle: "Get Started",
+                nextAction: {
                     coordinator.currentStep = .dependencyCheck
                     Task {
                         coordinator.dependencies = await coordinator.checkDependencies()
                     }
                 }
-                .controlSize(.large)
-                .keyboardShortcut(.defaultAction)
-            }
-            .padding(.horizontal, 30)
-            .padding(.bottom, 30)
+            )
         }
     }
 }
@@ -204,23 +203,25 @@ struct DependencyCheckView: View {
                             .controlSize(.large)
                         }
                         
-                        Button("Install Automatically") {
-                            Task {
-                                await coordinator.startAutomatedInstallation()
+                        NavigationButtonBar(
+                            coordinator: coordinator,
+                            nextTitle: "Install Automatically",
+                            nextAction: {
+                                Task {
+                                    await coordinator.startAutomatedInstallation()
+                                }
                             }
-                        }
-                        .controlSize(.large)
-                        .keyboardShortcut(.defaultAction)
+                        )
                     } else {
-                        Button("Continue") {
-                            coordinator.currentStep = .cookiePermissions
-                        }
-                        .controlSize(.large)
-                        .keyboardShortcut(.defaultAction)
+                        NavigationButtonBar(
+                            coordinator: coordinator,
+                            nextTitle: "Continue",
+                            nextAction: {
+                                coordinator.currentStep = .cookiePermissions
+                            }
+                        )
                     }
                 }
-                .padding(.horizontal, 30)
-                .padding(.bottom, 30)
             }
         }
         .task {
@@ -327,6 +328,18 @@ struct InstallationProgressView: View {
             }
             
             Spacer()
+            
+            // Add cancel button during installation
+            if coordinator.isInstalling && coordinator.error == nil {
+                NavigationButtonBar(
+                    coordinator: coordinator,
+                    showBack: false,
+                    showNext: false,
+                    showCancel: true,
+                    nextTitle: "",
+                    nextAction: {}
+                )
+            }
         }
     }
     
@@ -425,27 +438,17 @@ struct ManualSetupView: View {
             }
             .padding(.horizontal, 60)
             
-            // Action buttons
-            HStack(spacing: 15) {
-                Button("Go Back") {
-                    coordinator.goToPreviousStep()
-                }
-                .controlSize(.large)
-                
-                Spacer()
-                
-                Button("Continue") {
+            NavigationButtonBar(
+                coordinator: coordinator,
+                nextTitle: "Continue",
+                nextAction: {
                     coordinator.selectManualPaths(
                         ytdlpPath: ytdlpPath.isEmpty ? nil : ytdlpPath,
                         ffmpegPath: ffmpegPath.isEmpty ? nil : ffmpegPath
                     )
-                }
-                .controlSize(.large)
-                .keyboardShortcut(.defaultAction)
-                .disabled(ytdlpPath.isEmpty) // Require at least yt-dlp
-            }
-            .padding(.horizontal, 30)
-            .padding(.bottom, 30)
+                },
+                nextDisabled: ytdlpPath.isEmpty
+            )
         }
     }
     
@@ -473,77 +476,74 @@ struct CookiePermissionsView: View {
     @State private var cookieSource = "none"
     
     var body: some View {
-        VStack(spacing: 30) {
+        VStack(spacing: 20) {
             Text("Browser Integration")
                 .font(.largeTitle)
                 .fontWeight(.bold)
-                .padding(.top, 40)
+                .padding(.top, 30)
             
-            VStack(alignment: .leading, spacing: 20) {
-                Text("Fetcha can use your browser cookies to download videos that require login")
-                    .font(.title3)
-                    .multilineTextAlignment(.leading)
-                
-                InfoBox(
-                    icon: "lock.shield.fill",
-                    title: "Your privacy is protected",
-                    message: "• Cookies are only read locally\n• Never sent to any servers\n• Completely optional\n• Can be changed later in Preferences"
-                )
-                
-                GroupBox {
-                    VStack(alignment: .leading, spacing: 15) {
-                        Text("Select your browser:")
-                            .font(.headline)
-                        
-                        Picker("", selection: $cookieSource) {
-                            Text("Don't use cookies").tag("none")
-                            Divider()
-                            Text("Safari").tag("safari")
-                            Text("Chrome").tag("chrome")
-                            Text("Firefox").tag("firefox")
-                            Text("Brave").tag("brave")
-                            Text("Edge").tag("edge")
+            ScrollView {
+                VStack(alignment: .leading, spacing: 15) {
+                    Text("Fetcha can use your browser cookies to download videos that require login")
+                        .font(.body)
+                        .multilineTextAlignment(.leading)
+                    
+                    InfoBox(
+                        icon: "lock.shield.fill",
+                        title: "Your privacy is protected",
+                        message: "• Cookies are only read locally\n• Never sent to any servers\n• Completely optional\n• Can be changed later in Preferences"
+                    )
+                    
+                    GroupBox {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Select your browser:")
+                                .font(.headline)
+                            
+                            Picker("", selection: $cookieSource) {
+                                Text("Don't use cookies").tag("none")
+                                Divider()
+                                Text("Safari").tag("safari")
+                                Text("Chrome").tag("chrome")
+                                Text("Firefox").tag("firefox")
+                                Text("Brave").tag("brave")
+                                Text("Edge").tag("edge")
+                            }
+                            .pickerStyle(.radioGroup)
+                            .labelsHidden()
                         }
-                        .pickerStyle(.radioGroup)
-                        .labelsHidden()
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                
-                if cookieSource != "none" {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Label("Next steps:", systemImage: "info.circle")
-                            .font(.headline)
-                            .foregroundColor(.blue)
-                        
-                        Text("• Fetcha will request permission to read cookies")
-                            .font(.caption)
-                        Text("• This is a macOS security feature")
-                            .font(.caption)
-                        Text("• Click 'Allow' when prompted")
-                            .font(.caption)
+                    
+                    if cookieSource != "none" {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Label("Next steps:", systemImage: "info.circle")
+                                .font(.caption)
+                                .foregroundColor(.blue)
+                            
+                            Text("• Fetcha will request permission to read cookies")
+                                .font(.caption)
+                            Text("• This is a macOS security feature")
+                                .font(.caption)
+                            Text("• Click 'Allow' when prompted")
+                                .font(.caption)
+                        }
+                        .padding(10)
+                        .background(Color.blue.opacity(0.1))
+                        .cornerRadius(6)
                     }
-                    .padding()
-                    .background(Color.blue.opacity(0.1))
-                    .cornerRadius(8)
                 }
+                .padding(.horizontal, 60)
             }
-            .padding(.horizontal, 60)
             .frame(maxHeight: .infinity)
             
-            Spacer()
-            
-            HStack {
-                Spacer()
-                
-                Button("Continue") {
+            NavigationButtonBar(
+                coordinator: coordinator,
+                showCancel: false,
+                nextTitle: "Continue",
+                nextAction: {
                     coordinator.configureCookieSource(cookieSource)
                 }
-                .controlSize(.large)
-                .keyboardShortcut(.defaultAction)
-            }
-            .padding(.horizontal, 30)
-            .padding(.bottom, 30)
+            )
         }
     }
 }
@@ -555,30 +555,32 @@ struct CompletionView: View {
     @State private var showConfetti = false
     
     var body: some View {
-        VStack(spacing: 30) {
+        VStack(spacing: 20) {
             Spacer()
             
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 80))
+                .font(.system(size: 70))
                 .foregroundColor(.green)
                 .scaleEffect(showConfetti ? 1.0 : 0.5)
-                .animation(.spring(response: 0.5, dampingFraction: 0.6), value: showConfetti)
+                .animation(.easeOut(duration: 0.3), value: showConfetti)
             
             Text("All Set!")
                 .font(.largeTitle)
                 .fontWeight(.bold)
             
             Text("Fetcha is ready to download videos")
-                .font(.title3)
+                .font(.body)
                 .foregroundColor(.secondary)
             
-            VStack(spacing: 15) {
+            VStack(spacing: 10) {
                 Label("Paste any video URL to start downloading", systemImage: "link")
+                    .font(.caption)
                 Label("Use ⌘V to paste from clipboard", systemImage: "command")
+                    .font(.caption)
                 Label("Check Preferences (⌘,) for more options", systemImage: "gear")
+                    .font(.caption)
             }
-            .font(.headline)
-            .padding(.horizontal, 80)
+            .padding(.horizontal, 60)
             
             Spacer()
             
@@ -586,11 +588,11 @@ struct CompletionView: View {
                 coordinator.completeOnboarding()
             }
             .controlSize(.large)
-            .keyboardShortcut(.defaultAction)
+            .buttonStyle(.borderedProminent)
             .padding(.bottom, 30)
         }
         .onAppear {
-            withAnimation(.easeOut(duration: 0.5)) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 showConfetti = true
             }
         }
@@ -598,6 +600,68 @@ struct CompletionView: View {
 }
 
 // MARK: - Helper Views
+
+struct NavigationButtonBar: View {
+    let coordinator: OnboardingCoordinator
+    let showBack: Bool
+    let showNext: Bool
+    let showCancel: Bool
+    let nextTitle: String
+    let nextAction: () -> Void
+    let nextDisabled: Bool
+    
+    init(
+        coordinator: OnboardingCoordinator,
+        showBack: Bool = true,
+        showNext: Bool = true,
+        showCancel: Bool = true,
+        nextTitle: String = "Next",
+        nextAction: @escaping () -> Void,
+        nextDisabled: Bool = false
+    ) {
+        self.coordinator = coordinator
+        self.showBack = showBack
+        self.showNext = showNext
+        self.showCancel = showCancel
+        self.nextTitle = nextTitle
+        self.nextAction = nextAction
+        self.nextDisabled = nextDisabled
+    }
+    
+    var body: some View {
+        HStack(spacing: 15) {
+            if showCancel {
+                Button("Cancel") {
+                    coordinator.cancel()
+                }
+                .controlSize(.large)
+                .buttonStyle(.bordered)
+            }
+            
+            Spacer()
+            
+            if showBack && coordinator.currentStep.rawValue > 0 {
+                Button("Back") {
+                    coordinator.goToPreviousStep()
+                }
+                .controlSize(.large)
+                .buttonStyle(.bordered)
+            }
+            
+            if showNext {
+                Button(nextTitle) {
+                    nextAction()
+                }
+                .controlSize(.large)
+                .keyboardShortcut(.defaultAction)
+                .buttonStyle(.borderedProminent)
+                .disabled(nextDisabled)
+            }
+        }
+        .padding(.horizontal, 30)
+        .padding(.vertical, 20)
+    }
+}
 
 struct OnboardingProgressBar: View {
     let currentStep: OnboardingCoordinator.OnboardingStep
