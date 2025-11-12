@@ -9,8 +9,9 @@ import SwiftUI
 
 struct NotificationsPanel: View {
     @StateObject private var notificationCenter = AppNotificationCenter.shared
+    @ObservedObject private var themeManager = ThemeManager.shared
     @Binding var isShowing: Bool
-    
+
     var body: some View {
         VStack(spacing: 0) {
             // Header
@@ -46,7 +47,7 @@ struct NotificationsPanel: View {
                 .help("Close")
             }
             .padding()
-            .background(Color(NSColor.windowBackgroundColor))
+            .background(themeManager.colors.background)
             
             Divider()
             
@@ -65,12 +66,12 @@ struct NotificationsPanel: View {
                     
                     Text("You're all caught up!")
                         .font(.caption)
-                        .foregroundColor(Color(NSColor.tertiaryLabelColor))
+                        .foregroundColor(themeManager.colors.textTertiary)
                     
                     Spacer()
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color(NSColor.controlBackgroundColor))
+                .background(themeManager.colors.background)
             } else {
                 ScrollView {
                     VStack(spacing: 0) {
@@ -84,7 +85,8 @@ struct NotificationsPanel: View {
                         }
                     }
                 }
-                .background(Color(NSColor.controlBackgroundColor))
+                .scrollContentBackground(.hidden)
+                .background(themeManager.colors.background)
             }
         }
         .onAppear {
@@ -96,8 +98,9 @@ struct NotificationsPanel: View {
 
 struct NotificationRow: View {
     let notification: AppNotificationCenter.AppNotification
+    @ObservedObject private var themeManager = ThemeManager.shared
     @State private var isHovering = false
-    
+
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             // Icon
@@ -119,7 +122,7 @@ struct NotificationRow: View {
                 
                 Text(timeAgo)
                     .font(.system(size: 10))
-                    .foregroundColor(Color(NSColor.tertiaryLabelColor))
+                    .foregroundColor(themeManager.colors.textTertiary)
             }
             
             Spacer()
@@ -140,7 +143,7 @@ struct NotificationRow: View {
         }
         .padding(.horizontal)
         .padding(.vertical, 12)
-        .background(isHovering ? Color(NSColor.selectedContentBackgroundColor).opacity(0.1) : Color.clear)
+        .background(isHovering ? themeManager.colors.surfaceHover : Color.clear)
         .onHover { hovering in
             isHovering = hovering
         }

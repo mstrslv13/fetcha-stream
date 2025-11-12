@@ -102,7 +102,9 @@ struct FormatErrorDialog: View {
                 }
                 .padding()
             }
-            
+            .scrollContentBackground(.hidden)
+            .background(FreshUI.Colors.background)
+
             Divider()
             
             // Actions

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct EnhancedQueueView: View {
     @ObservedObject var queue: DownloadQueue
+    @ObservedObject private var themeManager = ThemeManager.shared
     @Binding var selectedItem: QueueDownloadTask?
     @State private var draggedItem: QueueDownloadTask?
     
@@ -88,7 +89,8 @@ struct EnhancedQueueView: View {
             }
             .padding(.vertical, 1)
         }
-        .background(Color(NSColor.controlBackgroundColor))
+        .scrollContentBackground(.hidden)
+        .background(themeManager.colors.background)
     }
 }
 
@@ -500,8 +502,9 @@ struct QueueItemRow: View {
 struct FormatPickerSheet: View {
     let item: QueueDownloadTask
     @Environment(\.dismiss) var dismiss
+    @ObservedObject private var themeManager = ThemeManager.shared
     @State private var selectedFormat: VideoFormat?
-    
+
     var body: some View {
         VStack(spacing: 0) {
             // Header
@@ -515,7 +518,7 @@ struct FormatPickerSheet: View {
                 .buttonStyle(.plain)
             }
             .padding()
-            .background(Color(NSColor.controlBackgroundColor))
+            .background(themeManager.colors.background)
             
             Divider()
             
@@ -555,9 +558,11 @@ struct FormatPickerSheet: View {
                 }
                 .padding()
             }
-            
+            .scrollContentBackground(.hidden)
+            .background(themeManager.colors.background)
+
             Divider()
-            
+
             // Actions
             HStack {
                 Button("Cancel") {

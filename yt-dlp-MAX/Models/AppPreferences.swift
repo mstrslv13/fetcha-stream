@@ -75,6 +75,10 @@ class AppPreferences: ObservableObject {
     @AppStorage("privateMode") var privateMode: Bool = false
     @AppStorage("privateDownloadPath") var privateDownloadPath: String = ""
     @AppStorage("privateModeShowIndicator") var privateModeShowIndicator: Bool = true
+
+    // Log Management Settings
+    @AppStorage("logRetentionLimit") var logRetentionLimit: Int = 10000  // Number of logs to keep (0 = unlimited)
+    @AppStorage("keepLogsIndefinitely") var keepLogsIndefinitely: Bool = false
     
     // Computed property for actual download path
     var resolvedDownloadPath: String {

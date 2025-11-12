@@ -4,6 +4,7 @@ import AppKit
 struct VideoDetailsPanel: View {
     let item: QueueItem?
     let historyItem: DownloadHistory.DownloadRecord?
+    @ObservedObject private var themeManager = ThemeManager.shared
     @State private var thumbnailImage: NSImage?
     @State private var verboseOutput: String = ""
     @State private var downloadStartTime: Date?
@@ -24,7 +25,7 @@ struct VideoDetailsPanel: View {
             }
             .padding(.horizontal)
             .padding(.vertical, 8)
-            .background(Color(NSColor.controlBackgroundColor))
+            .background(themeManager.colors.background)
             
             Divider()
             
@@ -114,7 +115,7 @@ struct VideoDetailsPanel: View {
                             }
                         }
                         .padding()
-                        .background(Color(NSColor.controlBackgroundColor))
+                        .background(themeManager.colors.background)
                         .cornerRadius(8)
                         .padding(.horizontal)
                         
@@ -191,7 +192,7 @@ struct VideoDetailsPanel: View {
                                         .font(.system(size: 11, design: .monospaced))
                                         .frame(maxWidth: .infinity, alignment: .leading)
                                         .padding(8)
-                                        .background(Color(NSColor.textBackgroundColor))
+                                        .background(themeManager.colors.surface)
                                         .cornerRadius(4)
                                 }
                                 .frame(height: 150)
@@ -201,6 +202,8 @@ struct VideoDetailsPanel: View {
                     }
                     .padding(.vertical)
                 }
+                .scrollContentBackground(.hidden)
+                .background(themeManager.colors.background)
             } else if let historyItem = historyItem {
                 // Show history item details
                 ScrollView {
@@ -330,6 +333,8 @@ struct VideoDetailsPanel: View {
                     }
                     .padding(.vertical)
                 }
+                .scrollContentBackground(.hidden)
+                .background(themeManager.colors.background)
             } else {
                 // No selection
                 ContentUnavailableView {
@@ -413,8 +418,9 @@ struct DetailRow: View {
 
 struct AsyncThumbnailView: View {
     let url: String
+    @ObservedObject private var themeManager = ThemeManager.shared
     @State private var image: NSImage?
-    
+
     var body: some View {
         Group {
             if let image = image {
@@ -423,7 +429,7 @@ struct AsyncThumbnailView: View {
                     .aspectRatio(contentMode: .fill)
             } else {
                 Rectangle()
-                    .fill(Color(NSColor.controlBackgroundColor))
+                    .fill(themeManager.colors.background)
                     .overlay(
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle())

@@ -12,7 +12,7 @@ struct AppConstants {
     
     /// The current app version from the bundle
     static var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.2.0"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.3.0"
     }
     
     /// The current build number from the bundle

@@ -147,6 +147,8 @@ struct QueueItemErrorDetailView: View {
                 }
                 .padding()
             }
+            .scrollContentBackground(.hidden)
+            .background(FreshUI.Colors.background)
         }
         .frame(width: 550, height: 500)
     }

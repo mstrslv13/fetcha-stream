@@ -97,6 +97,8 @@ struct CompactQueueView: View {
                     }
                     .padding(.vertical, 4)
                 }
+                .scrollContentBackground(.hidden)
+                .background(FreshUI.Colors.background)
             }
         }
         .background(Color(NSColor.controlBackgroundColor))

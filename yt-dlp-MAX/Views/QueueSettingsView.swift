@@ -45,7 +45,7 @@ struct QueueSettingsView: View {
                     .foregroundColor(.secondary)
             }
             .padding()
-            .background(Color(NSColor.tertiaryLabelColor).opacity(0.05))
+            .background(FreshUI.Colors.surface)
             .cornerRadius(10)
             
             // Consistent Format Setting
@@ -82,7 +82,7 @@ struct QueueSettingsView: View {
                 }
             }
             .padding()
-            .background(Color(NSColor.tertiaryLabelColor).opacity(0.05))
+            .background(FreshUI.Colors.surface)
             .cornerRadius(10)
             
             Spacer()

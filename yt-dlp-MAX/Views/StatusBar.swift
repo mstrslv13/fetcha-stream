@@ -11,9 +11,10 @@ struct StatusBar: View {
     @Binding var showDevTools: Bool
     @Binding var showNotifications: Bool
     @StateObject private var notificationCenter = AppNotificationCenter.shared
+    @ObservedObject private var themeManager = ThemeManager.shared
     @State private var statusText = "Ready"
     @State private var isCheckingForUpdates = false
-    
+
     let appVersion = AppConstants.appVersion
     
     var body: some View {
@@ -112,10 +113,10 @@ struct StatusBar: View {
         }
         .padding(.horizontal, 12)
         .frame(height: 28)
-        .background(Color(NSColor.controlBackgroundColor))
+        .background(themeManager.colors.background)
         .overlay(
             Rectangle()
-                .fill(Color(NSColor.separatorColor))
+                .fill(themeManager.colors.divider)
                 .frame(height: 1),
             alignment: .top
         )

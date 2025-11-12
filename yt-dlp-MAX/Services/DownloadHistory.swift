@@ -21,12 +21,13 @@ class DownloadHistory: ObservableObject {
         let duration: Double?
         let thumbnail: String?  // URL or base64 encoded thumbnail
         let uploader: String?  // Channel/uploader name
+        let isPrivateMode: Bool  // Track if download was made in private mode
         
         // Custom initializer for backward compatibility
         init(videoId: String, url: String, title: String, downloadPath: String,
              actualFilePath: String? = nil, timestamp: Date,
              fileSize: Int64? = nil, duration: Double? = nil,
-             thumbnail: String? = nil, uploader: String? = nil) {
+             thumbnail: String? = nil, uploader: String? = nil, isPrivateMode: Bool = false) {
             self.videoId = videoId
             self.url = url
             self.title = title
@@ -37,6 +38,7 @@ class DownloadHistory: ObservableObject {
             self.duration = duration
             self.thumbnail = thumbnail
             self.uploader = uploader
+            self.isPrivateMode = isPrivateMode
         }
         
         // Custom decoder for backward compatibility
@@ -47,13 +49,14 @@ class DownloadHistory: ObservableObject {
             title = try container.decode(String.self, forKey: .title)
             downloadPath = try container.decode(String.self, forKey: .downloadPath)
             timestamp = try container.decode(Date.self, forKey: .timestamp)
-            
+
             // Optional fields with defaults for backward compatibility
             actualFilePath = try container.decodeIfPresent(String.self, forKey: .actualFilePath)
             fileSize = try container.decodeIfPresent(Int64.self, forKey: .fileSize)
             duration = try container.decodeIfPresent(Double.self, forKey: .duration)
             thumbnail = try container.decodeIfPresent(String.self, forKey: .thumbnail)
             uploader = try container.decodeIfPresent(String.self, forKey: .uploader)
+            isPrivateMode = try container.decodeIfPresent(Bool.self, forKey: .isPrivateMode) ?? false
         }
         
         // Hash only on videoId for duplicate detection
@@ -86,23 +89,19 @@ class DownloadHistory: ObservableObject {
     
     private init() {
         // Store history in Application Support
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, 
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory,
                                                   in: .userDomainMask).first!
         let appFolder = appSupport.appendingPathComponent("fetcha.stream", isDirectory: true)
-        
+
         // Create directory if needed
-        try? FileManager.default.createDirectory(at: appFolder, 
+        try? FileManager.default.createDirectory(at: appFolder,
                                                 withIntermediateDirectories: true)
-        
-        // Use different file for private mode
-        if AppPreferences.shared.privateMode {
-            historyFile = appFolder.appendingPathComponent("private_history.json")
-        } else {
-            historyFile = appFolder.appendingPathComponent("download_history.json")
-        }
-        
+
+        // Always use single history file - private mode is handled via isPrivateMode flag
+        historyFile = appFolder.appendingPathComponent("download_history.json")
+
         loadHistory()
-        
+
         // Auto-clear old history on startup
         performAutoClear()
     }
@@ -122,15 +121,14 @@ class DownloadHistory: ObservableObject {
     }
     
     // Add a download to history
-    func addToHistory(videoId: String, url: String, title: String, 
+    func addToHistory(videoId: String, url: String, title: String,
                       downloadPath: String, actualFilePath: String? = nil,
                       fileSize: Int64? = nil, duration: Double? = nil,
                       thumbnail: String? = nil, uploader: String? = nil) {
-        // Don't save to history in private mode if configured
-        if AppPreferences.shared.privateMode {
-            return
-        }
-        
+        // Don't save to history in private mode
+        if AppPreferences.shared.privateMode { return }
+
+        // Tag record with current private mode state
         let record = DownloadRecord(
             videoId: videoId,
             url: url,
@@ -141,11 +139,12 @@ class DownloadHistory: ObservableObject {
             fileSize: fileSize,
             duration: duration,
             thumbnail: thumbnail,
-            uploader: uploader
+            uploader: uploader,
+            isPrivateMode: AppPreferences.shared.privateMode
         )
-        
+
         history.insert(record)
-        
+
         // Trim history if it gets too large
         if history.count > maxHistorySize {
             // Remove oldest records
@@ -153,7 +152,7 @@ class DownloadHistory: ObservableObject {
             let toKeep = sorted.suffix(maxHistorySize)
             history = Set(toKeep)
         }
-        
+
         saveHistory()
     }
     
@@ -175,30 +174,16 @@ class DownloadHistory: ObservableObject {
         saveHistory()
     }
     
-    // FIX: Handle private mode toggle at runtime - properly clear memory
+    // Handle private mode toggle - all history remains visible, just tagged
     func handlePrivateModeToggle() {
         if AppPreferences.shared.privateMode {
-            // Entering private mode - clear current history from memory
-            PersistentDebugLogger.shared.log("Private mode enabled - clearing memory history", level: .info)
-            
-            // Properly clear the history set to release memory
-            history.removeAll(keepingCapacity: false)
-            
-            // Force memory cleanup
-            autoreleasepool {
-                // Create new empty set to ensure old references are released
-                history = Set<DownloadRecord>()
-            }
+            // Entering private mode - new downloads will be tagged as private
+            PersistentDebugLogger.shared.log("Private mode enabled - new downloads will be tagged as private (existing history preserved)", level: .info)
         } else {
-            // Exiting private mode - reload history
-            PersistentDebugLogger.shared.log("Private mode disabled - reloading history", level: .info)
-            
-            // Clear any existing history first to avoid duplicates
-            history.removeAll(keepingCapacity: false)
-            
-            // Then load fresh from disk
-            loadHistory()
+            // Exiting private mode - new downloads will be tagged as regular
+            PersistentDebugLogger.shared.log("Private mode disabled - resuming regular history recording", level: .info)
         }
+        // No need to reload - all history stays in memory, UI can filter based on isPrivateMode if needed
     }
     
     // Perform auto-clear based on preferences
@@ -296,22 +281,14 @@ class DownloadHistory: ObservableObject {
     }
     
     func loadHistory() {
-        // Determine which history file to load based on private mode
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, 
-                                                  in: .userDomainMask).first!
-        let appFolder = appSupport.appendingPathComponent("fetcha.stream", isDirectory: true)
-        
-        let historyPath = AppPreferences.shared.privateMode ? 
-            appFolder.appendingPathComponent("private_history.json") :
-            appFolder.appendingPathComponent("download_history.json")
-        
-        guard FileManager.default.fileExists(atPath: historyPath.path) else { 
+        // Always load from single history file
+        guard FileManager.default.fileExists(atPath: historyFile.path) else {
             history = []
-            return 
+            return
         }
-        
+
         do {
-            let data = try Data(contentsOf: historyPath)
+            let data = try Data(contentsOf: historyFile)
             let records = try JSONDecoder().decode([DownloadRecord].self, from: data)
             history = Set(records)
         } catch {
@@ -321,11 +298,7 @@ class DownloadHistory: ObservableObject {
     }
     
     private func saveHistory() {
-        // Don't save in private mode (unless it's private history)
-        if AppPreferences.shared.privateMode {
-            return
-        }
-        
+        // Always save to single history file (private items are tagged with isPrivateMode flag)
         do {
             let data = try JSONEncoder().encode(Array(history))
             try data.write(to: historyFile)
