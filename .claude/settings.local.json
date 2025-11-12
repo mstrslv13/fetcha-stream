@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xcodebuild:*)",
+      "Bash(for:*)",
+      "Bash(do sed -i '' 's/FreshUI\\.Colors/themeManager.colors/g' \"$file\")",
+      "Bash(echo:*)",
+      "Bash(done)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
