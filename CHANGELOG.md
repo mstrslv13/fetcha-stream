@@ -2,7 +2,15 @@
 
 All notable changes to Fetcha Stream will be documented in this file.
 
-## [1.2.0] - 2025-09-07
+## [1.2.1] - 2025-09-15
+
+**v1.2.1**: Onboarding & Detection improvements
+- Fixed problem with Onboarding buttons not appearing
+- Added Run Setup Assistant to File Menu
+- Fixed issue where yt-dlp was not detecting
+- Fixed crashes after onboarding
+
+## [1.2.0] - 2025-09-07 (Current Stable)
 
 ### 🎨 Major UI Overhaul & Notification System
 

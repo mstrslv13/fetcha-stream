@@ -478,6 +478,7 @@ struct ContentView: View {
         // No longer need guard since timer only runs when enabled
         // guard preferences.autoAddToQueue else { return }
         
+        // Already on main thread from Timer.publish
         if let clipboard = NSPasteboard.general.string(forType: .string),
            clipboard != lastClipboard,
            isValidURL(clipboard) {
@@ -787,6 +788,7 @@ struct ContentView: View {
     }
     
     private func pasteAndProcess() {
+        // Already on main thread in SwiftUI
         if let clipboard = NSPasteboard.general.string(forType: .string) {
             urlString = clipboard.trimmingCharacters(in: .whitespacesAndNewlines)
             handleURLSubmit()

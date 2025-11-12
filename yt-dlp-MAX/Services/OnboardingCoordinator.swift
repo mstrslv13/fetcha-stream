@@ -309,23 +309,29 @@ final class OnboardingCoordinator: ObservableObject {
     func configureCookieSource(_ source: String) {
         logger.log("Cookie source configured: \(source)", level: .info)
         preferences.cookieSource = source
-        completeOnboarding()
+        currentStep = .complete
     }
     
+    @MainActor
     func completeOnboarding() {
         logger.log("Onboarding completed", level: .success)
         
         // Mark onboarding as complete
         UserDefaults.standard.set(true, forKey: "HasCompletedOnboarding")
         UserDefaults.standard.set(1, forKey: "OnboardingVersion")
+        UserDefaults.standard.synchronize()
         
-        currentStep = .complete
+        // Update the state first to prevent any UI updates
+        isOnboardingRequired = false
         
-        // Delay before dismissing
-        Task {
-            try? await Task.sleep(nanoseconds: 1_500_000_000) // 1.5 seconds
-            await MainActor.run {
-                isOnboardingRequired = false
+        // Delay window closing to avoid text layout issues
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            // Find and close the onboarding window
+            if let window = NSApplication.shared.windows.first(where: { $0.title == "Welcome to Fetcha" }) {
+                window.orderOut(nil)  // Hide first
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    window.close()  // Then close
+                }
             }
         }
     }
@@ -343,12 +349,12 @@ final class OnboardingCoordinator: ObservableObject {
         error = .cancelled
         isInstalling = false
         
-        // If required dependencies are installed, allow proceeding
-        if dependencies?.ytdlp.isInstalled == true {
-            currentStep = .cookiePermissions
-        } else {
-            // Can't proceed without required dependencies
-            isOnboardingRequired = false
+        // Always close onboarding when cancelled
+        isOnboardingRequired = false
+        
+        // Close the onboarding window
+        if let window = NSApplication.shared.windows.first(where: { $0.title == "Welcome to Fetcha" }) {
+            window.close()
         }
     }
     

@@ -43,8 +43,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             .sink { [weak self] required in
                 Task { @MainActor in
                     if !required {
-                        self?.onboardingWindow?.close()
-                        self?.onboardingWindow = nil
+                        // Only clean up the reference, don't close
+                        // The coordinator handles the actual closing
+                        if let window = self?.onboardingWindow {
+                            self?.onboardingWindow = nil
+                            self?.onboardingWindowDelegate = nil
+                        }
                     }
                 }
             }
@@ -52,7 +56,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     @MainActor
-    private func showOnboardingWindow() {
+    func showOnboardingWindow() {
         // Don't show if already visible
         guard onboardingWindow == nil else { return }
         
@@ -162,6 +166,14 @@ struct yt_dlp_MAXApp: App {
                     // FUTURE: Phase 2 - Batch import from text file
                 }
                 .keyboardShortcut("O", modifiers: .command)
+                
+                Divider()
+                
+                Button("Run Setup Assistant...") {
+                    Task {
+                        await runSetupAssistant()
+                    }
+                }
                 
                 Divider()
                 
@@ -292,6 +304,15 @@ struct yt_dlp_MAXApp: App {
         coordinator.dependencies = await coordinator.checkDependencies()
         coordinator.currentStep = .dependencyCheck
         coordinator.isOnboardingRequired = true
+    }
+    
+    private func runSetupAssistant() async {
+        let coordinator = OnboardingCoordinator.shared
+        coordinator.currentStep = .welcome
+        coordinator.isOnboardingRequired = true
+        await MainActor.run {
+            appDelegate.showOnboardingWindow()
+        }
     }
     
     private func exportDebugLogs() {

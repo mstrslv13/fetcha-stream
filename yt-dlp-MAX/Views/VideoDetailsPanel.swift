@@ -318,8 +318,10 @@ struct VideoDetailsPanel: View {
                                 
                                 // Copy Source URL button
                                 Button(action: {
-                                    NSPasteboard.general.clearContents()
-                                    NSPasteboard.general.setString(historyItem.url, forType: .string)
+                                    Task { @MainActor in
+                                        NSPasteboard.general.clearContents()
+                                        NSPasteboard.general.setString(historyItem.url, forType: .string)
+                                    }
                                 }) {
                                     Label("Copy Source", systemImage: "doc.on.doc")
                                         .frame(maxWidth: .infinity)
