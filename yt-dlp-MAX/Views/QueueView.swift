@@ -3,9 +3,10 @@ import Combine
 
 struct QueueView: View {
     @ObservedObject var queue: DownloadQueue
+    @ObservedObject private var themeManager = ThemeManager.shared
     @State private var showingLocationPicker = false
     @State private var showingSettings = false
-    
+
     var body: some View {
         VStack(spacing: 0) {
             // Header with save location
@@ -56,7 +57,7 @@ struct QueueView: View {
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
-                .background(Color(NSColor.tertiaryLabelColor).opacity(0.1))
+                .background(themeManager.colors.surface)
                 .cornerRadius(8)
             }
             .padding()
@@ -86,6 +87,8 @@ struct QueueView: View {
                     }
                     .padding()
                 }
+                .scrollContentBackground(.hidden)
+                .background(themeManager.colors.background)
                 .frame(maxHeight: .infinity)
             }
         }
@@ -112,10 +115,11 @@ struct QueueView: View {
 struct QueueItemView: View {
     @ObservedObject var item: QueueItem
     let queue: DownloadQueue
+    @ObservedObject private var themeManager = ThemeManager.shared
     @State private var isHovering = false
     @State private var showingFormatPicker = false
     @State private var showingErrorDetail = false
-    
+
     var body: some View {
         HStack(spacing: 12) {
             // Thumbnail
@@ -126,7 +130,7 @@ struct QueueItemView: View {
                         .aspectRatio(contentMode: .fill)
                 } placeholder: {
                     Rectangle()
-                        .fill(Color(NSColor.tertiaryLabelColor).opacity(0.2))
+                        .fill(themeManager.colors.surface)
                         .overlay(
                             ProgressView()
                                 .scaleEffect(0.5)
@@ -286,7 +290,7 @@ struct QueueItemView: View {
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 10)
-                .fill(isHovering ? Color(NSColor.tertiaryLabelColor).opacity(0.1) : Color(NSColor.tertiaryLabelColor).opacity(0.05))
+                .fill(isHovering ? themeManager.colors.surfaceHover : themeManager.colors.surface)
         )
         .onHover { hovering in
             isHovering = hovering

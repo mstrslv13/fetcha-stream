@@ -9,6 +9,7 @@ import SwiftUI
 
 struct DevToolsPanel: View {
     @Binding var isExpanded: Bool
+    @ObservedObject private var themeManager = ThemeManager.shared
     @State private var panelHeight: CGFloat = 250
     @State private var isDragging = false
     @State private var selectedTab = "console"
@@ -29,7 +30,7 @@ struct DevToolsPanel: View {
                 .frame(height: 6)
                 .overlay(
                     Capsule()
-                        .fill(Color(NSColor.separatorColor))
+                        .fill(themeManager.colors.divider)
                         .frame(width: 36, height: 4)
                 )
                 .contentShape(Rectangle())
@@ -96,11 +97,11 @@ struct DevToolsPanel: View {
                 .padding(.vertical, 4)
                 .background(
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(Color(NSColor.textBackgroundColor).opacity(0.5))
+                        .fill(themeManager.colors.surface.opacity(0.5))
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 4)
-                        .stroke(Color(NSColor.separatorColor), lineWidth: 0.5)
+                        .stroke(themeManager.colors.divider, lineWidth: 0.5)
                 )
                 
                 // Action buttons
@@ -138,7 +139,7 @@ struct DevToolsPanel: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(Color(NSColor.windowBackgroundColor))
+            .background(themeManager.colors.background)
             
             Divider()
             
@@ -148,7 +149,7 @@ struct DevToolsPanel: View {
                     logs: .constant(filteredLogs),
                     filter: selectedLogType
                 )
-                .background(Color(NSColor.textBackgroundColor))
+                .background(themeManager.colors.surface)
             } else {
                 // FUTURE: Network tab content
                 VStack {
@@ -158,15 +159,15 @@ struct DevToolsPanel: View {
                     Spacer()
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color(NSColor.textBackgroundColor))
+                .background(themeManager.colors.surface)
             }
         }
         .frame(height: isExpanded ? panelHeight : 0)
         .clipped()
-        .background(Color(NSColor.windowBackgroundColor))
+        .background(themeManager.colors.background)
         .overlay(
             Rectangle()
-                .fill(Color(NSColor.separatorColor))
+                .fill(themeManager.colors.divider)
                 .frame(height: 1),
             alignment: .top
         )
@@ -244,7 +245,8 @@ struct TabButton: View {
     let icon: String
     let isSelected: Bool
     let action: () -> Void
-    
+    @ObservedObject private var themeManager = ThemeManager.shared
+
     var body: some View {
         Button(action: action) {
             HStack(spacing: 4) {
@@ -257,7 +259,7 @@ struct TabButton: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 4)
             .background(
-                isSelected ? Color(NSColor.controlAccentColor).opacity(0.15) : Color.clear
+                isSelected ? themeManager.colors.surfaceSelected : Color.clear
             )
         }
         .buttonStyle(.plain)
@@ -268,7 +270,8 @@ struct DevToolsFilterPill: View {
     let title: String
     let isSelected: Bool
     let action: () -> Void
-    
+    @ObservedObject private var themeManager = ThemeManager.shared
+
     var body: some View {
         Button(action: action) {
             Text(title)
@@ -278,11 +281,11 @@ struct DevToolsFilterPill: View {
                 .padding(.vertical, 2)
                 .background(
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(isSelected ? Color.accentColor : Color(NSColor.controlBackgroundColor))
+                        .fill(isSelected ? Color.accentColor : themeManager.colors.background)
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 4)
-                        .stroke(isSelected ? Color.clear : Color(NSColor.separatorColor), lineWidth: 0.5)
+                        .stroke(isSelected ? Color.clear : themeManager.colors.divider, lineWidth: 0.5)
                 )
         }
         .buttonStyle(.plain)

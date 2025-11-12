@@ -32,7 +32,8 @@ struct ContentView: View {
     @StateObject private var downloadHistory = DownloadHistory.shared
     @StateObject private var debugLogger = PersistentDebugLogger.shared
     @StateObject private var notificationCenter = AppNotificationCenter.shared
-    
+    @ObservedObject private var themeManager = ThemeManager.shared
+
     private let ytdlpService = YTDLPService()
     // PERFORMANCE FIX: Changed from 0.5s to 2s and only active when auto-add is enabled
     @State private var pasteboardTimer: Timer.TimerPublisher?
@@ -56,10 +57,10 @@ struct ContentView: View {
                     .transition(.move(edge: .leading))
                     .animation(.easeInOut(duration: 0.2), value: showHistoryPanel)
                 
-                // Resizable divider
+                // Invisible resize handle (no icon, cursor feedback only)
                 Rectangle()
                     .fill(Color.clear)
-                    .frame(width: 4)
+                    .frame(width: 6)
                     .contentShape(Rectangle())
                     .onHover { hovering in
                         if hovering {
@@ -75,11 +76,13 @@ struct ContentView: View {
                                 historyPanelWidth = min(max(newWidth, 250), 500)
                             }
                     )
-                
+
+                // Subtle divider line
                 Divider()
+                    .background(Color.white.opacity(0.05))
             }
             
-            // Toggle button for history panel
+            // Toggle button for history panel (invisible but functional)
             VStack {
                 Spacer()
                 Button(action: {
@@ -90,18 +93,14 @@ struct ContentView: View {
                         resizeWindowForPanels(showHistory: showHistoryPanel, showDetails: showDetailsPanel)
                     }
                 }) {
-                    Image(systemName: showHistoryPanel ? "sidebar.left" : "sidebar.left")
-                        .font(.system(size: 14))
-                        .foregroundColor(.secondary)
-                        .frame(width: 24, height: 24)
-                        .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
-                        .cornerRadius(4)
+                    Color.clear
+                        .frame(width: 10, height: 100)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .help("Toggle History Panel")
                 .accessibilityLabel("Toggle History Panel")
                 .accessibilityHint("Shows or hides the download history panel")
-                .padding(.leading, 4)
                 Spacer()
             }
             
@@ -231,7 +230,7 @@ struct ContentView: View {
                     }
                 }
                 .padding()
-                .background(Color(NSColor.controlBackgroundColor))
+                .background(themeManager.colors.background)
                 
                 Divider()
                 
@@ -257,8 +256,9 @@ struct ContentView: View {
                 .frame(height: 44)
             }
             .frame(minWidth: 400)
-            
-            // Toggle button for details panel
+            .background(themeManager.colors.background)
+
+            // Toggle button for details panel (invisible but functional)
             VStack {
                 Spacer()
                 Button(action: {
@@ -269,18 +269,14 @@ struct ContentView: View {
                         resizeWindowForPanels(showHistory: showHistoryPanel, showDetails: showDetailsPanel)
                     }
                 }) {
-                    Image(systemName: showDetailsPanel ? "sidebar.right" : "sidebar.right")
-                        .font(.system(size: 14))
-                        .foregroundColor(.secondary)
-                        .frame(width: 24, height: 24)
-                        .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
-                        .cornerRadius(4)
+                    Color.clear
+                        .frame(width: 10, height: 100)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .help("Toggle Details Panel")
                 .accessibilityLabel("Toggle Details Panel")
                 .accessibilityHint("Shows or hides the video details panel")
-                .padding(.trailing, 4)
                 Spacer()
             }
             
@@ -307,6 +303,7 @@ struct ContentView: View {
                 showNotifications: $showNotifications
             )
         }
+        .background(themeManager.colors.background)
         .frame(minWidth: {
             var width = 450  // Base width for main content
             if showHistoryPanel { width += Int(historyPanelWidth) }
@@ -317,9 +314,9 @@ struct ContentView: View {
             if showNotifications {
                 NotificationsPanel(isShowing: $showNotifications)
                     .frame(width: 400, height: 500)
-                    .background(Color(NSColor.windowBackgroundColor))
+                    .background(themeManager.colors.background)
                     .clipShape(RoundedRectangle(cornerRadius: 10))
-                    .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 5)
+                    .shadow(color: themeManager.colors.background.opacity(0.2), radius: 10, x: 0, y: 5)
                     .offset(x: 60, y: -40) // Position above status bar, offset from left edge
                     .transition(.asymmetric(
                         insertion: .move(edge: .leading).combined(with: .opacity),
@@ -1086,7 +1083,8 @@ struct RSSImportDialog: View {
 // Enhanced Progress Bar with better animation
 struct EnhancedProgressBar: View {
     @ObservedObject var queue: DownloadQueue
-    
+    @ObservedObject private var themeManager = ThemeManager.shared
+
     var completedCount: Int {
         queue.items.filter { $0.status == .completed }.count
     }
@@ -1119,7 +1117,7 @@ struct EnhancedProgressBar: View {
                 ZStack(alignment: .leading) {
                     // Background
                     RoundedRectangle(cornerRadius: 6)
-                        .fill(Color.secondary.opacity(0.2))
+                        .fill(themeManager.colors.surface)
                     
                     // Progress fill with animation
                     RoundedRectangle(cornerRadius: 6)

@@ -213,7 +213,7 @@ struct FormatTypeSelector: View {
                 .padding(.top, 8)
         }
         .padding()
-        .background(Color(NSColor.tertiaryLabelColor).opacity(0.05))
+        .background(FreshUI.Colors.surface)
         .cornerRadius(10)
     }
 }

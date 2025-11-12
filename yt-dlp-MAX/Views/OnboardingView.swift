@@ -281,6 +281,8 @@ struct InstallationProgressView: View {
                                 }
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             }
+                            .scrollContentBackground(.hidden)
+                            .background(FreshUI.Colors.background)
                             .onChange(of: progress.logs.count) { oldValue, newValue in
                                 withAnimation {
                                     proxy.scrollTo(newValue - 1, anchor: .bottom)

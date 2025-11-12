@@ -7,8 +7,11 @@ class PersistentDebugLogger: ObservableObject {
     
     @Published var logs: [DebugLog] = []
     @Published var sessionLogs: [SessionLog] = []
-    
-    private let maxLogs = 10000  // Keep more logs in memory
+
+    // Log retention settings (respects user preferences)
+    private var maxLogs: Int {
+        AppPreferences.shared.keepLogsIndefinitely ? 0 : AppPreferences.shared.logRetentionLimit
+    }
     private let maxSessionLogs = 50  // Keep 50 sessions
     private let logFile: URL
     private let sessionFile: URL
@@ -97,6 +100,9 @@ class PersistentDebugLogger: ObservableObject {
     }
     
     func log(_ message: String, level: DebugLog.LogLevel = .info, details: String? = nil) {
+        // Suspend logging in private mode (preserves existing logs)
+        guard !AppPreferences.shared.privateMode else { return }
+
         DispatchQueue.main.async {
             let log = DebugLog(
                 sessionId: self.currentSessionId,
@@ -105,14 +111,15 @@ class PersistentDebugLogger: ObservableObject {
                 message: message,
                 details: details
             )
-            
+
             self.logs.append(log)
-            
-            // Keep only recent logs in memory
-            if self.logs.count > self.maxLogs {
-                self.logs = Array(self.logs.suffix(self.maxLogs))
+
+            // Keep only recent logs in memory (unless keeping indefinitely)
+            let logLimit = self.maxLogs
+            if logLimit > 0 && self.logs.count > logLimit {
+                self.logs = Array(self.logs.suffix(logLimit))
             }
-            
+
             // Save to disk asynchronously
             self.saveLogs()
         }

@@ -392,6 +392,15 @@ class DownloadQueue: ObservableObject {
                     
                     // Update dock menu
                     DockMenuService.shared.notifyDownloadCompleted()
+
+                    // Send completion notification (only if not in private mode)
+                    if !AppPreferences.shared.privateMode {
+                        AppNotificationCenter.shared.addNotification(
+                            type: .info,
+                            title: "Download Complete",
+                            message: "\(item.title) has finished downloading."
+                        )
+                    }
                 }
                 self.activeDownloads.remove(item.id)
                 self.processQueue()
@@ -402,6 +411,15 @@ class DownloadQueue: ObservableObject {
                     self.items[idx].status = .failed
                     self.items[idx].errorMessage = error.localizedDescription
                     PersistentDebugLogger.shared.log("Download failed for: \(item.title)", level: .error, details: error.localizedDescription)
+
+                    // Send failure notification (only if not in private mode)
+                    if !AppPreferences.shared.privateMode {
+                        AppNotificationCenter.shared.addNotification(
+                            type: .error,
+                            title: "Download Failed",
+                            message: "\(item.title): \(error.localizedDescription)"
+                        )
+                    }
                 }
                 self.activeDownloads.remove(item.id)
                 // Don't automatically retry failed items

@@ -4,6 +4,7 @@ import AppKit
 struct MediaControlBar: View {
     @ObservedObject var queue: DownloadQueue
     @ObservedObject var downloadHistory: DownloadHistory
+    @ObservedObject private var themeManager = ThemeManager.shared
     @StateObject private var coordinator = MediaSelectionCoordinator.shared
     @State private var currentIndex: Int = -1
     @State private var currentFile: DownloadHistory.DownloadRecord?
@@ -43,29 +44,9 @@ struct MediaControlBar: View {
             .sorted { $0.timestamp > $1.timestamp }  // Most recent first
             .reversed()  // Oldest first for navigation
     }
-    
-    private var hasPrevious: Bool {
-        currentIndex > 0 && !completedDownloads.isEmpty
-    }
-    
-    private var hasNext: Bool {
-        currentIndex < completedDownloads.count - 1 && currentIndex >= 0
-    }
-    
+
     var body: some View {
-        let previousDisabled = !hasPrevious
-        
         return HStack(spacing: 16) {
-            // Previous button
-            Button(action: previousFile) {
-                Image(systemName: "backward.fill")
-                    .font(.system(size: 14))
-            }
-            .buttonStyle(.plain)
-            .disabled(previousDisabled)
-            .help("Previous download")
-            .keyboardShortcut(.leftArrow, modifiers: [.command])
-            
             // Play/Open button
             Button(action: playCurrentFile) {
                 Image(systemName: "play.fill")
@@ -75,26 +56,7 @@ struct MediaControlBar: View {
             .disabled(currentFile == nil)
             .help("Open current file")
             .keyboardShortcut(.space, modifiers: [])
-            
-            // Stop button (clears selection)
-            Button(action: stopPlayback) {
-                Image(systemName: "stop.fill")
-                    .font(.system(size: 14))
-            }
-            .buttonStyle(.plain)
-            .disabled(currentFile == nil)
-            .help("Clear selection")
-            
-            // Next button
-            Button(action: nextFile) {
-                Image(systemName: "forward.fill")
-                    .font(.system(size: 14))
-            }
-            .buttonStyle(.plain)
-            .disabled(!hasNext)
-            .help("Next download")
-            .keyboardShortcut(.rightArrow, modifiers: [.command])
-            
+
             Divider()
                 .frame(height: 20)
             
@@ -154,7 +116,7 @@ struct MediaControlBar: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(Color(NSColor.controlBackgroundColor))
+        .background(themeManager.colors.background)
         .onAppear {
             // Initialize with the first completed download
             if !completedDownloads.isEmpty && currentIndex < 0 {
@@ -193,22 +155,8 @@ struct MediaControlBar: View {
         }
     }
     
-    // MARK: - Navigation Functions
-    
-    private func previousFile() {
-        guard hasPrevious else { return }
-        currentIndex -= 1
-        currentFile = completedDownloads[currentIndex]
-        coordinator.setCurrentMediaItem(currentFile)
-    }
-    
-    private func nextFile() {
-        guard hasNext else { return }
-        currentIndex += 1
-        currentFile = completedDownloads[currentIndex]
-        coordinator.setCurrentMediaItem(currentFile)
-    }
-    
+    // MARK: - Playback Functions
+
     private func playCurrentFile() {
         guard let file = currentFile else { return }
         
@@ -250,14 +198,7 @@ struct MediaControlBar: View {
             }
         }
     }
-    
-    private func stopPlayback() {
-        // Don't reset navigation state, just clear the current playback
-        // Keep currentIndex and allow navigation to continue
-        // This prevents the stop button from breaking navigation
-        coordinator.setCurrentMediaItem(nil)
-    }
-    
+
     private func showInFinder() {
         guard let file = currentFile else { return }
         

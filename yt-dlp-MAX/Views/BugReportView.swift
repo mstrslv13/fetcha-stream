@@ -163,6 +163,8 @@ struct BugReportView: View {
                                         .foregroundColor(.secondary)
                                         .frame(maxWidth: .infinity, alignment: .leading)
                                 }
+                                .scrollContentBackground(.hidden)
+                                .background(FreshUI.Colors.background)
                                 .frame(height: 80)
                             }
                         }
@@ -170,7 +172,9 @@ struct BugReportView: View {
                 }
                 .padding()
             }
-            
+            .scrollContentBackground(.hidden)
+            .background(FreshUI.Colors.background)
+
             // Footer buttons
             HStack {
                 Button("Cancel") {

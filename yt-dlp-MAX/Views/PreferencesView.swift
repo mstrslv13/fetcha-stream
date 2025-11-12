@@ -2,15 +2,19 @@ import SwiftUI
 
 struct PreferencesView: View {
     @StateObject private var preferences = AppPreferences.shared
+    @ObservedObject private var themeManager = ThemeManager.shared
     @State private var selectedSection = "general"
-    
+
     var body: some View {
         HSplitView {
             // Sidebar with sections
             List(selection: $selectedSection) {
                 Label("General", systemImage: "gear")
                     .tag("general")
-                
+
+                Label("Appearance", systemImage: "paintpalette")
+                    .tag("appearance")
+
                 Label("Naming", systemImage: "textformat")
                     .tag("naming")
                 
@@ -27,6 +31,7 @@ struct PreferencesView: View {
                     .tag("about")
             }
             .listStyle(SidebarListStyle())
+            .scrollContentBackground(.hidden)
             .frame(width: 150)
             
             // Content area
@@ -34,6 +39,8 @@ struct PreferencesView: View {
                 switch selectedSection {
                 case "general":
                     GeneralPreferencesView()
+                case "appearance":
+                    AppearancePreferencesView()
                 case "naming":
                     NamingPreferencesView()
                 case "postprocessing":
@@ -51,6 +58,7 @@ struct PreferencesView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(width: 850, height: 700)
+        .background(themeManager.colors.background)
     }
 }
 
@@ -197,10 +205,155 @@ struct GeneralPreferencesView: View {
     }
 }
 
+struct AppearancePreferencesView: View {
+    @ObservedObject private var themeManager = ThemeManager.shared
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Text("Appearance")
+                .font(.title)
+                .fontWeight(.bold)
+                .padding(.bottom, 10)
+
+            // Theme Selection
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Theme")
+                    .font(.headline)
+
+                Text("Choose your preferred color theme")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                ForEach(AppTheme.allCases, id: \.self) { theme in
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            themeManager.currentTheme = theme
+                        }
+                    }) {
+                        HStack {
+                            // Theme preview swatch
+                            HStack(spacing: 4) {
+                                Circle()
+                                    .fill(theme.colorPalette.background)
+                                    .frame(width: 20, height: 20)
+                                    .overlay(
+                                        Circle()
+                                            .stroke(theme.colorPalette.border, lineWidth: 1)
+                                    )
+
+                                Circle()
+                                    .fill(theme.colorPalette.accentGreen)
+                                    .frame(width: 20, height: 20)
+
+                                Circle()
+                                    .fill(theme.colorPalette.accentBlue)
+                                    .frame(width: 20, height: 20)
+
+                                Circle()
+                                    .fill(theme.colorPalette.accentOrange)
+                                    .frame(width: 20, height: 20)
+                            }
+
+                            Text(theme.rawValue)
+                                .font(.body)
+                                .foregroundColor(themeManager.colors.textPrimary)
+
+                            Spacer()
+
+                            if themeManager.currentTheme == theme {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(themeManager.colors.accentGreen)
+                                    .font(.system(size: 20))
+                            }
+                        }
+                        .padding()
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(themeManager.currentTheme == theme ?
+                                      themeManager.colors.surfaceSelected :
+                                      themeManager.colors.surface)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(themeManager.currentTheme == theme ?
+                                        themeManager.colors.accentGreen :
+                                        themeManager.colors.border,
+                                        lineWidth: themeManager.currentTheme == theme ? 2 : 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            // Theme descriptions
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Theme Details")
+                    .font(.headline)
+                    .padding(.top, 10)
+
+                switch themeManager.currentTheme {
+                case .oledBlack:
+                    ThemeDescriptionView(
+                        title: "OLED Black",
+                        description: "True black background optimized for OLED displays. Reduces power consumption and provides maximum contrast.",
+                        bestFor: "Late-night viewing, OLED displays, battery saving"
+                    )
+                case .psychedelicNeon:
+                    ThemeDescriptionView(
+                        title: "Psychedelic Neon",
+                        description: "High-contrast neon colors on dark background. Bold, energetic, and attention-grabbing.",
+                        bestFor: "High visibility, creative work, making a statement"
+                    )
+                }
+            }
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(30)
+    }
+}
+
+struct ThemeDescriptionView: View {
+    let title: String
+    let description: String
+    let bestFor: String
+    @ObservedObject private var themeManager = ThemeManager.shared
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .foregroundColor(themeManager.colors.textPrimary)
+
+            Text(description)
+                .font(.caption)
+                .foregroundColor(themeManager.colors.textSecondary)
+
+            HStack {
+                Text("Best for:")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(themeManager.colors.textTertiary)
+
+                Text(bestFor)
+                    .font(.caption)
+                    .foregroundColor(themeManager.colors.accentBlue)
+            }
+            .padding(.top, 2)
+        }
+        .padding()
+        .background(themeManager.colors.surface)
+        .cornerRadius(8)
+    }
+}
+
 struct NamingPreferencesView: View {
     @StateObject private var preferences = AppPreferences.shared
+    @ObservedObject private var themeManager = ThemeManager.shared
     @State private var templatePreview = ""
-    
+
     let templateVariables = [
         ("%(title)s", "Video title"),
         ("%(uploader)s", "Channel/uploader name"),
@@ -270,7 +423,7 @@ struct NamingPreferencesView: View {
                             }
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
-                            .background(Color.secondary.opacity(0.1))
+                            .background(themeManager.colors.surface)
                             .cornerRadius(5)
                         }
                         .buttonStyle(PlainButtonStyle())
@@ -615,15 +768,10 @@ struct PostProcessingPreferencesView: View {
 
 struct UpdatePreferencesView: View {
     @StateObject private var preferences = AppPreferences.shared
+    @StateObject private var dependencyChecker = DependencyUpdateChecker.shared
     @State private var ytdlpVersion = "Checking..."
     @State private var ffmpegVersion = "Checking..."
-    @State private var isCheckingUpdates = false
-    @State private var isUpdatingYtdlp = false
-    @State private var isUpdatingFfmpeg = false
     @State private var updateMessage = ""
-    @State private var hasCheckedForUpdates = false
-    @State private var ytdlpNeedsUpdate = false
-    @State private var ffmpegNeedsUpdate = false
     @State private var fetchaUpdateAvailable = false
     @State private var fetchaUpdateURL = ""
     
@@ -663,31 +811,41 @@ struct UpdatePreferencesView: View {
                             .foregroundColor(.secondary)
                         Text("yt-dlp:")
                             .frame(width: 80, alignment: .leading)
-                        Text(ytdlpVersion)
-                            .foregroundColor(ytdlpNeedsUpdate ? .orange : .secondary)
-                        Spacer()
-                        Button("Update") {
-                            updateYtdlp()
+                        if let current = dependencyChecker.ytdlpCurrentVersion,
+                           let latest = dependencyChecker.ytdlpLatestVersion {
+                            Text("\(current) → \(latest)")
+                                .foregroundColor(.orange)
+                        } else {
+                            Text(ytdlpVersion)
+                                .foregroundColor(.secondary)
                         }
-                        .disabled(!hasCheckedForUpdates || !ytdlpNeedsUpdate || isUpdatingYtdlp)
-                        .help(!hasCheckedForUpdates ? "Check for updates first" : 
-                              !ytdlpNeedsUpdate ? "Already up to date" : "Update yt-dlp")
+                        Spacer()
+                        Button("Upgrade") {
+                            Task { await updateYtdlp() }
+                        }
+                        .disabled(!dependencyChecker.ytdlpUpdateAvailable)
+                        .help(dependencyChecker.ytdlpUpdateAvailable ? "Upgrade yt-dlp via Homebrew" : "Up to date")
                     }
-                    
+
                     HStack {
                         Image(systemName: "film")
                             .foregroundColor(.secondary)
                         Text("ffmpeg:")
                             .frame(width: 80, alignment: .leading)
-                        Text(ffmpegVersion)
-                            .foregroundColor(ffmpegNeedsUpdate ? .orange : .secondary)
-                        Spacer()
-                        Button("Update") {
-                            updateFfmpeg()
+                        if let current = dependencyChecker.ffmpegCurrentVersion,
+                           let latest = dependencyChecker.ffmpegLatestVersion {
+                            Text("\(current) → \(latest)")
+                                .foregroundColor(.orange)
+                        } else {
+                            Text(ffmpegVersion)
+                                .foregroundColor(.secondary)
                         }
-                        .disabled(!hasCheckedForUpdates || !ffmpegNeedsUpdate || isUpdatingFfmpeg)
-                        .help(!hasCheckedForUpdates ? "Check for updates first" : 
-                              !ffmpegNeedsUpdate ? "Already up to date" : "Update ffmpeg")
+                        Spacer()
+                        Button("Upgrade") {
+                            Task { await updateFfmpeg() }
+                        }
+                        .disabled(!dependencyChecker.ffmpegUpdateAvailable)
+                        .help(dependencyChecker.ffmpegUpdateAvailable ? "Upgrade ffmpeg via Homebrew" : "Up to date")
                     }
                 }
                 .padding(12)
@@ -710,11 +868,14 @@ struct UpdatePreferencesView: View {
                 Button("Check for Updates Now") {
                     checkForUpdates()
                 }
-                .disabled(isCheckingUpdates)
-                
-                if isCheckingUpdates {
+                .disabled(dependencyChecker.isChecking)
+
+                if dependencyChecker.isChecking {
                     ProgressView()
                         .scaleEffect(0.7)
+                    Text("Checking via Homebrew...")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
             }
             
@@ -766,80 +927,52 @@ struct UpdatePreferencesView: View {
     }
     
     func checkForUpdates() {
-        isCheckingUpdates = true
         updateMessage = "Checking for updates..."
-        hasCheckedForUpdates = false
-        
+
         Task {
-            do {
-                _ = try await runCommand("brew update")
-                let outdated = try await runCommand("brew outdated")
-                
-                await MainActor.run {
-                    ytdlpNeedsUpdate = outdated.contains("yt-dlp")
-                    ffmpegNeedsUpdate = outdated.contains("ffmpeg")
-                    hasCheckedForUpdates = true
-                    
-                    if ytdlpNeedsUpdate || ffmpegNeedsUpdate {
-                        var needsUpdate: [String] = []
-                        if ytdlpNeedsUpdate { needsUpdate.append("yt-dlp") }
-                        if ffmpegNeedsUpdate { needsUpdate.append("ffmpeg") }
-                        updateMessage = "Updates available for: \(needsUpdate.joined(separator: ", "))"
-                    } else {
-                        updateMessage = "Everything is up to date"
-                    }
-                    isCheckingUpdates = false
-                }
-            } catch {
-                await MainActor.run {
-                    updateMessage = "Failed to check for updates"
-                    isCheckingUpdates = false
-                    hasCheckedForUpdates = false
+            // Check both Fetcha app and dependencies
+            await UpdateChecker.shared.checkForUpdates()
+            await dependencyChecker.checkForUpdates()
+
+            await MainActor.run {
+                if dependencyChecker.ytdlpUpdateAvailable || dependencyChecker.ffmpegUpdateAvailable {
+                    var needsUpdate: [String] = []
+                    if dependencyChecker.ytdlpUpdateAvailable { needsUpdate.append("yt-dlp") }
+                    if dependencyChecker.ffmpegUpdateAvailable { needsUpdate.append("ffmpeg") }
+                    updateMessage = "Updates available for: \(needsUpdate.joined(separator: ", "))"
+                } else {
+                    updateMessage = "Everything is up to date"
                 }
             }
         }
     }
-    
-    func updateYtdlp() {
-        isUpdatingYtdlp = true
-        updateMessage = "Updating yt-dlp..."
-        
-        Task {
-            do {
-                _ = try await runCommand("brew upgrade yt-dlp")
-                await MainActor.run {
-                    updateMessage = "yt-dlp updated successfully"
-                    isUpdatingYtdlp = false
-                    ytdlpNeedsUpdate = false
-                    checkVersions()
-                }
-            } catch {
-                await MainActor.run {
-                    updateMessage = "Failed to update yt-dlp"
-                    isUpdatingYtdlp = false
-                }
+
+    func updateYtdlp() async {
+        updateMessage = "Upgrading yt-dlp via Homebrew..."
+
+        let success = await dependencyChecker.upgradeYtdlp()
+
+        await MainActor.run {
+            if success {
+                updateMessage = "yt-dlp upgraded successfully"
+                checkVersions()
+            } else {
+                updateMessage = "Failed to upgrade yt-dlp"
             }
         }
     }
-    
-    func updateFfmpeg() {
-        isUpdatingFfmpeg = true
-        updateMessage = "Updating ffmpeg..."
-        
-        Task {
-            do {
-                _ = try await runCommand("brew upgrade ffmpeg")
-                await MainActor.run {
-                    updateMessage = "ffmpeg updated successfully"
-                    isUpdatingFfmpeg = false
-                    ffmpegNeedsUpdate = false
-                    checkVersions()
-                }
-            } catch {
-                await MainActor.run {
-                    updateMessage = "Failed to update ffmpeg"
-                    isUpdatingFfmpeg = false
-                }
+
+    func updateFfmpeg() async {
+        updateMessage = "Upgrading ffmpeg via Homebrew..."
+
+        let success = await dependencyChecker.upgradeFfmpeg()
+
+        await MainActor.run {
+            if success {
+                updateMessage = "ffmpeg upgraded successfully"
+                checkVersions()
+            } else {
+                updateMessage = "Failed to upgrade ffmpeg"
             }
         }
     }
@@ -888,7 +1021,7 @@ struct PrivacyPreferencesView: View {
                             }
                         }
                     
-                    Text("In private mode, download history is not saved and a separate download location can be used.")
+                    Text("In private mode, new downloads and logs are not recorded. Existing history is preserved and visible.")
                         .font(.caption)
                         .foregroundColor(.secondary)
                     
@@ -976,15 +1109,45 @@ struct PrivacyPreferencesView: View {
                 }
             }
             
+            // Log Retention Settings
+            GroupBox {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Debug Logs")
+                        .font(.headline)
+
+                    Toggle("Keep logs indefinitely", isOn: $preferences.keepLogsIndefinitely)
+                        .help("When enabled, all logs are preserved without limit")
+
+                    if !preferences.keepLogsIndefinitely {
+                        HStack {
+                            Text("Log retention limit:")
+                            TextField("", value: $preferences.logRetentionLimit, format: .number)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .frame(width: 100)
+                            Text("logs")
+                        }
+                        .help("Maximum number of log entries to keep in memory")
+
+                        Text("Logs older than this limit will be automatically removed.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    } else {
+                        Text("All logs will be preserved indefinitely. This may use more disk space and memory.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+
             // Embed Options
             GroupBox {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Media Metadata")
                         .font(.headline)
-                    
+
                     Toggle("Embed thumbnails in video files", isOn: $preferences.embedThumbnail)
                         .help("Embeds thumbnail images into downloaded video files")
-                    
+
                     Text("Thumbnails are always saved separately for display in the app.")
                         .font(.caption)
                         .foregroundColor(.secondary)

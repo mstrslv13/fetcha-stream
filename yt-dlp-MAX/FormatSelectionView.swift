@@ -86,6 +86,8 @@ struct FormatSelectionView: View {
                             }
                         }
                     }
+                    .scrollContentBackground(.hidden)
+                    .background(FreshUI.Colors.background)
                     .frame(maxHeight: showAllFormats ? 300 : nil)
                 }
                 

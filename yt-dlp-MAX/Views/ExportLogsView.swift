@@ -150,7 +150,9 @@ struct ExportLogsView: View {
                 }
                 .padding()
             }
-            
+            .scrollContentBackground(.hidden)
+            .background(FreshUI.Colors.background)
+
             Divider()
             
             // Action Buttons

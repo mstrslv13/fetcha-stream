@@ -2,6 +2,7 @@ import SwiftUI
 
 struct FileHistoryPanel: View {
     @Binding var selectedItem: DownloadHistory.DownloadRecord?
+    @ObservedObject private var themeManager = ThemeManager.shared
     // Debug tab removed - now only shows history
     @State private var searchText = ""
     @State private var filterType = "All"
@@ -59,7 +60,7 @@ struct FileHistoryPanel: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(Color(NSColor.controlBackgroundColor))
+            .background(themeManager.colors.background)
             
             Divider()
             
@@ -90,6 +91,7 @@ struct FileHistoryPanel: View {
             // History list
             FileHistoryList(searchText: searchText, filterType: filterType, selectedItem: $selectedItem)
         }
+        .background(themeManager.colors.background)
     }
 }
 
@@ -98,6 +100,7 @@ struct FileHistoryList: View {
     let filterType: String
     @Binding var selectedItem: DownloadHistory.DownloadRecord?
     @StateObject private var downloadHistory = DownloadHistory.shared
+    @ObservedObject private var themeManager = ThemeManager.shared
     
     // PERFORMANCE FIX: Cache filtered results and only recalculate when inputs change
     @State private var cachedFilteredHistory: [DownloadHistory.DownloadRecord] = []
@@ -185,6 +188,8 @@ struct FileHistoryList: View {
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(themeManager.colors.background)
     }
 }
 
