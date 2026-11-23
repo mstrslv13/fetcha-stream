@@ -1,5 +1,7 @@
-# This workflow will build a Swift project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-swift
+# Builds the macOS app with Xcode.
+# This repository is an Xcode project (yt-dlp-MAX.xcodeproj), not a Swift package,
+# so Swift Package Manager commands (swift build / swift test) cannot build it.
+# The project's test targets currently contain no test sources, so there is no test step.
 
 name: Swift
 
@@ -16,7 +18,13 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Build
-      run: swift build -v
-    - name: Run tests
-      run: swift test -v
+    - name: Show Xcode version
+      run: xcodebuild -version
+    - name: Build app (unsigned)
+      run: >
+        xcodebuild
+        -project yt-dlp-MAX.xcodeproj
+        -target yt-dlp-MAX
+        -configuration Debug
+        CODE_SIGNING_ALLOWED=NO
+        build
