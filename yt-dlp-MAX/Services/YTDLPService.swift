@@ -5,104 +5,301 @@ import SwiftUI
 class YTDLPService {
     private let preferences = AppPreferences.shared
     private var hasShownFFmpegAlert = false
-    
-    // Find ffmpeg installation
-    private func findFFmpeg() -> String? {
-        // Return cached path if available
-        if let cached = cachedFFmpegPath {
-            return cached
+
+    // MARK: - Tool resolution and process environment
+
+    /// The first yt-dlp release that can solve YouTube's JavaScript challenges with an
+    /// external runtime (Deno). Older releases lose most or all YouTube formats, which
+    /// surfaces as "Requested format is not available".
+    /// See https://github.com/yt-dlp/yt-dlp/issues/15012
+    private static let minimumYouTubeCapableVersion = "2025.11.12"
+
+    // Resolved once per app launch and shared by every YTDLPService instance.
+    private static var cachedYTDLPPath: String?
+    private static var cachedFFmpegPath: String?
+    private static var hasWarnedAboutOutdatedYTDLP = false
+    private static var hasWarnedAboutMissingJSRuntime = false
+
+    /// The user's real home directory. Inside the App Sandbox, NSHomeDirectory() points at
+    /// the app container instead, which never holds user-installed tools.
+    private static var realHomeDirectory: String {
+        if let entry = getpwuid(getuid()), let directory = entry.pointee.pw_dir {
+            return String(cString: directory)
         }
-        
-        let ffmpegPath = findBinary(name: "ffmpeg")
-        cachedFFmpegPath = ffmpegPath
-        return ffmpegPath
+        return NSHomeDirectory()
     }
-    
-    // Generic binary finder to reduce duplication
-    private func findBinary(name: String) -> String? {
-        // FIRST: Check for bundled version in app Resources
-        if let bundledPath = Bundle.main.path(forResource: name, ofType: nil, inDirectory: "bin") {
-            if FileManager.default.fileExists(atPath: bundledPath) {
-                PersistentDebugLogger.shared.log("Using bundled \(name)", level: .success)
-                return bundledPath
-            }
-        }
-        
-        let possiblePaths = [
-            "/opt/homebrew/bin/\(name)",     // Homebrew on Apple Silicon
-            "/usr/local/bin/\(name)",        // Homebrew on Intel
-            "/usr/bin/\(name)",              // System install
-            "/opt/local/bin/\(name)",        // MacPorts
-            "\(NSHomeDirectory())/bin/\(name)", // User's home bin directory
-            "\(NSHomeDirectory())/.local/bin/\(name)" // Python pip user install
+
+    /// Directories that hold user-installed command-line tools on macOS. Apps launched from
+    /// Finder or the Dock do not inherit the shell's PATH (they get only the system
+    /// directories), so these have to be supplied explicitly.
+    private static var userToolDirectories: [String] {
+        let home = realHomeDirectory
+        return [
+            "/opt/homebrew/bin",      // Homebrew on Apple Silicon
+            "/usr/local/bin",         // Homebrew on Intel
+            "/opt/local/bin",         // MacPorts
+            "\(home)/.deno/bin",      // Deno's own installer
+            "\(home)/.local/bin",     // pip / pipx user installs
+            "\(home)/bin"
         ]
-        
-        for path in possiblePaths {
-            if FileManager.default.fileExists(atPath: path) {
-                PersistentDebugLogger.shared.log("Found \(name) at: \(path)", level: .success)
-                return path
-            }
+    }
+
+    /// Environment used for every yt-dlp invocation.
+    ///
+    /// yt-dlp locates its JavaScript runtime (Deno) and ffmpeg through PATH, so every call
+    /// must see the same PATH. Previously only the download call set PATH, so the metadata
+    /// call ran without Deno and received a different (much smaller) set of YouTube formats
+    /// than the download call, and format IDs chosen from the metadata could be missing at
+    /// download time.
+    static func toolEnvironment(prepending extraDirectories: [String] = []) -> [String: String] {
+        var environment = ProcessInfo.processInfo.environment
+        let inherited = (environment["PATH"] ?? "").split(separator: ":").map(String.init)
+        let system = ["/usr/bin", "/bin", "/usr/sbin", "/sbin"]
+        var seen = Set<String>()
+        let directories = (extraDirectories + userToolDirectories + system + inherited)
+            .filter { !$0.isEmpty && seen.insert($0).inserted }
+        environment["PATH"] = directories.joined(separator: ":")
+        return environment
+    }
+
+    /// Environment for yt-dlp, with the directory of the selected yt-dlp searched first so a
+    /// JavaScript runtime installed next to it is found. The app bundle's own bin directory
+    /// is never prepended, because the bundled ffmpeg there may not be runnable.
+    private func ytdlpEnvironment() -> [String: String] {
+        var extra: [String] = []
+        if let path = Self.cachedYTDLPPath, !path.hasPrefix(Bundle.main.bundlePath) {
+            extra.append((path as NSString).deletingLastPathComponent)
         }
-        
-        // Try using 'which' command
+        return Self.toolEnvironment(prepending: extra)
+    }
+
+    /// Runs `path argument` and returns the first line of its output, or nil if the tool
+    /// cannot run. This rejects binaries that exist but cannot launch, such as an ffmpeg
+    /// linked against Homebrew libraries that have since been upgraded or removed.
+    private static func probeVersion(of path: String, argument: String, timeout: TimeInterval = 20) -> String? {
+        guard FileManager.default.isExecutableFile(atPath: path) else { return nil }
+
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/which")
-        process.arguments = [name]
-        
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        
+        process.executableURL = URL(fileURLWithPath: path)
+        process.arguments = [argument]
+        process.environment = toolEnvironment()
+
+        let outputPipe = Pipe()
+        process.standardOutput = outputPipe
+        process.standardError = FileHandle.nullDevice
+
+        let finished = DispatchSemaphore(value: 0)
+        process.terminationHandler = { _ in finished.signal() }
+
         do {
             try process.run()
-            process.waitUntilExit()
-            
-            if process.terminationStatus == 0 {
-                let data = pipe.fileHandleForReading.readDataToEndOfFile()
-                if let path = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) {
-                    PersistentDebugLogger.shared.log("Found \(name) via which: \(path)", level: .success)
-                    return path
-                }
-            }
         } catch {
-            PersistentDebugLogger.shared.log("Failed to find \(name): \(error)", level: .warning)
+            return nil
         }
-        
+
+        if finished.wait(timeout: .now() + timeout) == .timedOut {
+            process.terminate()
+            return nil
+        }
+
+        guard process.terminationReason == .exit, process.terminationStatus == 0 else {
+            return nil
+        }
+
+        let data = outputPipe.fileHandleForReading.readDataToEndOfFile()
+        let firstLine = String(data: data, encoding: .utf8)?
+            .split(whereSeparator: \.isNewline)
+            .first
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+        return firstLine ?? ""
+    }
+
+    /// Finds a working copy of a tool.
+    ///
+    /// Order: an explicit user choice, then user-installed copies (Homebrew, MacPorts, pip,
+    /// PATH), then the copy bundled inside the app. The bundled copy is deliberately last:
+    /// the user cannot update it, and an outdated yt-dlp stops working with YouTube. This
+    /// matches the order DependencyManager uses for the Preferences and onboarding screens,
+    /// and the Homebrew copy is the one DependencyUpdateChecker keeps up to date.
+    private static func findBinary(name: String, versionArgument: String, preferredPath: String?) -> (path: String, version: String)? {
+        var candidates: [String] = []
+        if let preferred = preferredPath, !preferred.isEmpty {
+            candidates.append(NSString(string: preferred).expandingTildeInPath)
+        }
+
+        let searchPath = toolEnvironment()["PATH"] ?? ""
+        candidates += searchPath.split(separator: ":").map { "\($0)/\(name)" }
+
+        // Bundled copy last. Look in Resources/bin and, in case the build flattened the
+        // folder, directly in Resources.
+        candidates += [
+            Bundle.main.path(forResource: name, ofType: nil, inDirectory: "bin"),
+            Bundle.main.path(forResource: name, ofType: nil)
+        ].compactMap { $0 }
+
+        var seen = Set<String>()
+        for path in candidates where seen.insert(path).inserted {
+            guard FileManager.default.fileExists(atPath: path) else { continue }
+
+            if let version = probeVersion(of: path, argument: versionArgument) {
+                let origin = path.hasPrefix(Bundle.main.bundlePath) ? "bundled" : "installed"
+                PersistentDebugLogger.shared.log(
+                    "Using \(origin) \(name)",
+                    level: .success,
+                    details: "Path: \(path)\nVersion: \(version)"
+                )
+                return (path, version)
+            }
+
+            PersistentDebugLogger.shared.log(
+                "Skipping \(name) that failed to run",
+                level: .warning,
+                details: "Path: \(path)"
+            )
+        }
+
         return nil
     }
-    
-    // Find yt-dlp installation using the generic finder
-    private func findYTDLP() -> String? {
-        return findBinary(name: "yt-dlp")
-    }
-    
-    // Cache the path after finding it once
-    private var cachedYTDLPPath: String?
-    private var cachedFFmpegPath: String?
 
-    // Modified findYTDLP that uses the cache
-    private func getYTDLPPath() throws -> String {
-        // If we've already found it, use the cached path
-        if let cached = cachedYTDLPPath {
+    // Find ffmpeg installation
+    private func findFFmpeg() -> String? {
+        if let cached = Self.cachedFFmpegPath {
             return cached
         }
-        
-        // Otherwise, find it and cache the result
+
+        let found = Self.findBinary(
+            name: "ffmpeg",
+            versionArgument: "-version",
+            preferredPath: preferences.ffmpegPath
+        )
+        Self.cachedFFmpegPath = found?.path
+        return found?.path
+    }
+
+    // Find yt-dlp installation
+    private func findYTDLP() -> String? {
+        if let cached = Self.cachedYTDLPPath {
+            return cached
+        }
+
+        guard let found = Self.findBinary(
+            name: "yt-dlp",
+            versionArgument: "--version",
+            preferredPath: UserDefaults.standard.string(forKey: "ManualYtdlpPath")
+        ) else {
+            return nil
+        }
+
+        Self.cachedYTDLPPath = found.path
+        warnIfYTDLPIsOutdated(version: found.version, path: found.path)
+        return found.path
+    }
+
+    private func getYTDLPPath() throws -> String {
         guard let path = findYTDLP() else {
             throw YTDLPError.ytdlpNotFound
         }
-        
-        cachedYTDLPPath = path
         return path
     }
-    
+
+    /// yt-dlp versions are dates (YYYY.MM.DD, optionally followed by a nightly build
+    /// number), so a plain string comparison orders them correctly.
+    private func warnIfYTDLPIsOutdated(version: String, path: String) {
+        guard version.range(of: #"^\d{4}\.\d{2}\.\d{2}"#, options: .regularExpression) != nil,
+              version < Self.minimumYouTubeCapableVersion,
+              !Self.hasWarnedAboutOutdatedYTDLP else {
+            return
+        }
+        Self.hasWarnedAboutOutdatedYTDLP = true
+
+        let message = "yt-dlp \(version) is too old for YouTube (\(Self.minimumYouTubeCapableVersion) or newer is required). " +
+            "Update it with: brew upgrade yt-dlp"
+        PersistentDebugLogger.shared.log("Outdated yt-dlp", level: .warning, details: "\(message)\nPath: \(path)")
+        Task { @MainActor in
+            AppNotificationCenter.shared.addNotification(
+                type: .dependency,
+                title: "yt-dlp is out of date",
+                message: message
+            )
+        }
+    }
+
+    /// Logs yt-dlp's warnings and tells the user once when no JavaScript runtime was found.
+    private func reportYTDLPWarnings(_ stderrText: String) {
+        for line in stderrText.split(whereSeparator: \.isNewline) where line.contains("WARNING") {
+            PersistentDebugLogger.shared.log("yt-dlp warning", level: .warning, details: String(line))
+        }
+
+        if stderrText.contains("No supported JavaScript runtime could be found"),
+           !Self.hasWarnedAboutMissingJSRuntime {
+            Self.hasWarnedAboutMissingJSRuntime = true
+            Task { @MainActor in
+                AppNotificationCenter.shared.addNotification(
+                    type: .dependency,
+                    title: "Deno is needed for YouTube",
+                    message: "yt-dlp could not find a JavaScript runtime, so most YouTube formats are unavailable. " +
+                        "Install one with: brew install deno"
+                )
+            }
+        }
+    }
+
+    /// Reads stdout and stderr concurrently until the process closes them. Reading one pipe
+    /// to the end before touching the other (or waiting for exit before reading either)
+    /// can deadlock once the unread pipe's buffer fills, and a single YouTube JSON dump is
+    /// far larger than a pipe buffer.
+    private static func drainPipes(output: Pipe, error: Pipe) -> (output: Data, error: Data) {
+        // A reference box rather than a captured `var`, because the dispatch closure may be
+        // @Sendable. The DispatchGroup wait orders the write before the read.
+        let errorResult = PipeReadResult()
+        let errorRead = DispatchGroup()
+        errorRead.enter()
+        DispatchQueue.global(qos: .utility).async {
+            errorResult.data = error.fileHandleForReading.readDataToEndOfFile()
+            errorRead.leave()
+        }
+        let outputData = output.fileHandleForReading.readDataToEndOfFile()
+        errorRead.wait()
+        return (outputData, errorResult.data)
+    }
+
+    private final class PipeReadResult: @unchecked Sendable {
+        var data = Data()
+    }
+
+    /// Builds a -f selector that tries the exact format the user picked first, then falls
+    /// back to the closest equivalent instead of failing.
+    ///
+    /// Format IDs come from an earlier metadata request and are not guaranteed to exist when
+    /// the download starts: YouTube offers different formats to different clients and
+    /// sessions. A bare format ID therefore failed with "Requested format is not available"
+    /// whenever the ID had disappeared.
+    static func formatSelector(for format: VideoFormat) -> String {
+        let id = format.format_id
+        let hasVideo = format.vcodec != nil && format.vcodec != "none"
+        let hasAudio = format.acodec != nil && format.acodec != "none"
+
+        var choices: [String] = format.needsAudioMerge ? ["\(id)+bestaudio", id] : [id]
+
+        if let height = format.height, height > 0 {
+            choices += ["bestvideo*[height<=\(height)]+bestaudio", "best[height<=\(height)]"]
+        } else if hasAudio && !hasVideo {
+            choices.append("bestaudio")
+        }
+
+        choices += ["bestvideo*+bestaudio", "best"]
+        return choices.joined(separator: "/")
+    }
+
     // Test if yt-dlp is installed and working
     func getVersion() async throws -> String {
         let ytdlpPath = try getYTDLPPath()  // This will find it or use cache
-        
+
         let process = Process()
         process.executableURL = URL(fileURLWithPath: ytdlpPath)
         process.arguments = ["--version"]
-        
+        process.environment = ytdlpEnvironment()
+
         let pipe = Pipe()
         process.standardOutput = pipe
         
@@ -428,17 +625,25 @@ class YTDLPService {
         
         arguments.append(urlString)
         process.arguments = arguments
-        
+        process.environment = ytdlpEnvironment()
+
         let pipe = Pipe()
         let errorPipe = Pipe()
         process.standardOutput = pipe
         process.standardError = errorPipe
-        
+
         try process.run()
+        let (data, errorData) = Self.drainPipes(output: pipe, error: errorPipe)
         process.waitUntilExit()
-        
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        
+
+        if process.terminationStatus != 0 {
+            PersistentDebugLogger.shared.log(
+                "Playlist check failed",
+                level: .warning,
+                details: "Exit code: \(process.terminationStatus)\n\(String(data: errorData, encoding: .utf8) ?? "")"
+            )
+        }
+
         if let output = String(data: data, encoding: .utf8),
            let jsonData = output.data(using: .utf8) {
             do {
@@ -508,16 +713,17 @@ class YTDLPService {
         
         args.append(urlString)
         process.arguments = args
-        
+        process.environment = ytdlpEnvironment()
+
         let pipe = Pipe()
         let errorPipe = Pipe()
         process.standardOutput = pipe
         process.standardError = errorPipe
-        
+
         try process.run()
+        let (data, _) = Self.drainPipes(output: pipe, error: errorPipe)
         process.waitUntilExit()
-        
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+
         var videos: [VideoInfo] = []
         var playlistTitle = "Unknown Playlist"
         var playlistUploader: String?
@@ -594,11 +800,12 @@ class YTDLPService {
         // These arguments tell yt-dlp what we want:
         // --dump-json: Give us metadata as JSON instead of downloading
         // --no-playlist: Just this video, not the whole playlist
-        // --no-warnings: Suppress warnings that might interfere with JSON
+        // Warnings are deliberately NOT suppressed. yt-dlp writes them to stderr, so they
+        // cannot corrupt the JSON on stdout, and they carry the only explanation when
+        // YouTube formats are missing (e.g. "No supported JavaScript runtime could be found").
         var arguments = [
             "--dump-json",
-            "--no-playlist",
-            "--no-warnings"
+            "--no-playlist"
         ]
         
         // Add cookie support for getting high quality formats
@@ -646,7 +853,11 @@ class YTDLPService {
         } ?? []
         _ = "\(ytdlpPath) \(safeArgs.joined(separator: " "))"
         PersistentDebugLogger.shared.log("Fetching metadata", level: .info, details: "URL: \(sanitizedURL)")
-        
+
+        // Same PATH as the download step, so yt-dlp finds the same JavaScript runtime and
+        // therefore offers the same formats.
+        process.environment = ytdlpEnvironment()
+
         // Set up pipes for both output and errors
         let outputPipe = Pipe()
         let errorPipe = Pipe()
@@ -675,9 +886,11 @@ class YTDLPService {
                 }
             }
             
-            // Read the output BEFORE waiting for exit to prevent deadlock with large outputs
-            data = outputPipe.fileHandleForReading.readDataToEndOfFile()
-            errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
+            // Read both pipes concurrently BEFORE waiting for exit to prevent a deadlock
+            // with large outputs
+            let drained = Self.drainPipes(output: outputPipe, error: errorPipe)
+            data = drained.output
+            errorData = drained.error
             
             // Wait for process to complete
             await withCheckedContinuation { continuation in
@@ -696,12 +909,15 @@ class YTDLPService {
             throw error
         }
         
+        // Surface yt-dlp's warnings whether or not the fetch succeeded
+        reportYTDLPWarnings(String(data: errorData, encoding: .utf8) ?? "")
+
         // Check if yt-dlp succeeded (exit code 0 means success)
         if process.terminationStatus != 0 {
             // Something went wrong - let's see what yt-dlp said
             let errorMessage = String(data: errorData, encoding: .utf8) ?? "Unknown error"
-            
-            PersistentDebugLogger.shared.log("Metadata fetch failed", level: .error, details: "Exit code: \(process.terminationStatus)\n\(errorMessage)")
+
+            PersistentDebugLogger.shared.log("Metadata fetch failed", level: .error, details: "Exit code: \(process.terminationStatus)\nyt-dlp: \(Self.cachedYTDLPPath ?? ytdlpPath)\n\(errorMessage)")
             
             // Throw an error with the message
             throw YTDLPError.processFailed(errorMessage)
@@ -767,19 +983,15 @@ class YTDLPService {
         } else {
             // Add format selection if specified
             if let format = format {
-                var formatArg = format.format_id
-                
-                // Check if we need to merge audio
-                if format.needsAudioMerge {
-                    formatArg = "\(format.format_id)+bestaudio/\(format.format_id)+bestaudio[ext=mp4]/best"
-                    PersistentDebugLogger.shared.log("Format needs audio merge", level: .info, details: formatArg)
-                }
-            
+                // The chosen format first, then the closest equivalent, so a format ID that
+                // is no longer offered degrades gracefully instead of failing the download
+                let formatArg = Self.formatSelector(for: format)
+                PersistentDebugLogger.shared.log("Format selector", level: .info, details: formatArg)
                 arguments.append(contentsOf: ["-f", formatArg])
             } else if preferences.defaultVideoQuality != "best" {
-                // Use user's preferred quality
-                let quality = preferences.defaultVideoQuality
-                let formatString = "bestvideo[height<=\(quality.replacingOccurrences(of: "p", with: ""))]+bestaudio/best[height<=\(quality.replacingOccurrences(of: "p", with: ""))]"
+                // Use user's preferred quality, falling back to the best available
+                let height = preferences.defaultVideoQuality.replacingOccurrences(of: "p", with: "")
+                let formatString = "bestvideo[height<=\(height)]+bestaudio/best[height<=\(height)]/bestvideo*+bestaudio/best"
                 arguments.append(contentsOf: ["-f", formatString])
             } else {
                 // Use best quality by default
@@ -993,10 +1205,8 @@ class YTDLPService {
         _ = "\(ytdlpPath) \(safeArgs.joined(separator: " "))"
         PersistentDebugLogger.shared.log("Starting download", level: .info, details: "URL: \(sanitizedURL)")
         
-        // Set up environment to include common binary paths
-        var environment = ProcessInfo.processInfo.environment
-        environment["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-        process.environment = environment
+        // Same PATH as every other yt-dlp call (Homebrew, Deno, etc.)
+        process.environment = ytdlpEnvironment()
         
         // Set up pipes
         let outputPipe = Pipe()
@@ -1851,17 +2061,18 @@ class YTDLPService {
         
         args.append(url)
         process.arguments = args
-        
+        process.environment = ytdlpEnvironment()
+
         let pipe = Pipe()
         process.standardOutput = pipe
-        process.standardError = Pipe() // Suppress errors
-        
+        process.standardError = FileHandle.nullDevice // Suppress errors without filling an unread pipe
+
         do {
             try process.run()
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
             process.waitUntilExit()
-            
+
             if process.terminationStatus == 0 {
-                let data = pipe.fileHandleForReading.readDataToEndOfFile()
                 if let output = String(data: data, encoding: .utf8) {
                     return output.trimmingCharacters(in: .whitespacesAndNewlines)
                 }
