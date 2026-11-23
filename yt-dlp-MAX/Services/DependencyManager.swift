@@ -216,15 +216,10 @@ final class DependencyManager {
     
     func findBinary(name: String) -> String? {
         logger.log("Looking for binary: \(name)", level: .info)
-        
-        // First check for bundled version in app Resources
-        if let bundledPath = Bundle.main.path(forResource: name, ofType: nil, inDirectory: "bin") {
-            if FileManager.default.fileExists(atPath: bundledPath) {
-                logger.log("Using bundled \(name) at \(bundledPath)", level: .success)
-                return bundledPath
-            }
-        }
-        
+
+        // User-installed copies are preferred over the bundled one: the user can keep them
+        // up to date, while an outdated bundled yt-dlp stops working with YouTube.
+        // This matches the order used by YTDLPService.
         let possiblePaths = [
             "/opt/homebrew/bin/\(name)",        // Homebrew on Apple Silicon
             "/usr/local/bin/\(name)",           // Homebrew on Intel
@@ -265,7 +260,14 @@ final class DependencyManager {
         } catch {
             logger.log("Failed to find \(name): \(error)", level: .warning)
         }
-        
+
+        // Last resort: the copy bundled in the app's Resources
+        if let bundledPath = Bundle.main.path(forResource: name, ofType: nil, inDirectory: "bin"),
+           FileManager.default.fileExists(atPath: bundledPath) {
+            logger.log("Using bundled \(name) at \(bundledPath)", level: .success)
+            return bundledPath
+        }
+
         return nil
     }
     

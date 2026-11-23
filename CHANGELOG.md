@@ -2,6 +2,16 @@
 
 All notable changes to Fetcha Stream will be documented in this file.
 
+## [Unreleased]
+
+### Fixed: downloads fail with "The requested video format is not available"
+- Fetcha now prefers the user's installed yt-dlp (manual path, Homebrew, MacPorts, pip) over the copy bundled in the app. The bundled yt-dlp (2025.08.22) predates the JavaScript challenge solver that YouTube has required since yt-dlp 2025.11.12, so it returned few or no YouTube formats even when the user's own yt-dlp worked. The bundled copy is now only a last resort.
+- Every yt-dlp call (metadata, playlist check, filename preview, download) now runs with the same PATH, including Homebrew and `~/.deno/bin`, so yt-dlp finds Deno consistently. Previously only the download call set PATH, so metadata and download could see different format lists.
+- Downloads now use a fallback format selector (`<id>+bestaudio/<id>/bestvideo*[height<=H]+bestaudio/best[height<=H]/bestvideo*+bestaudio/best`) instead of a bare format ID, so a format that is no longer offered degrades to the closest match instead of failing.
+- Each candidate yt-dlp/ffmpeg is test-run before use; binaries that cannot launch (for example the bundled ffmpeg, which is linked against Homebrew's ffmpeg 7.1.1_3 libraries) are skipped.
+- yt-dlp warnings are no longer suppressed during metadata fetch. They are logged to the debug console, and a notification explains when Deno is missing or yt-dlp is older than 2025.11.12.
+- Playlist checks now read yt-dlp's output while it runs instead of after it exits, avoiding a possible stall on large JSON output.
+
 ## [1.2.1] - 2025-09-15
 
 **v1.2.1**: Onboarding & Detection improvements
